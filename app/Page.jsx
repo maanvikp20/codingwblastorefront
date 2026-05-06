@@ -1,7 +1,9 @@
 import Image from "next/image";
 
-export default function Page() {
+const page = () => {
   return (
-   <div>Nothing here yet</div>
-  );
+    <div>Nothing Here Yet </div>
+  )
 }
+
+export default page
