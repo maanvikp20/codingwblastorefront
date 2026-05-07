@@ -1,14 +1,18 @@
-import React from 'react'
-import Image from 'next/image'
+'use client'
+import Product from '@/components/Product'
+import React, { useState } from 'react'
 
+const Page = () => {
 
-const page = () => {
+  const [status, setStatus] = useState(false)
+  
   return (
     <>
-    <div className="search-area">
-      <button className="search-button">Search</button>
-      <input type='search' className='search-bar' />
-      <select className='filter-bar' >
+    <div className="w-screen h-[8vh] bg-[#DC965A] flex flex-row items-center justify-evenly p-[.6rem]">
+      <button className='w-[8%] h-[95%] text-decoration-line'>Filter</button>
+      <button className='bg-[#BBB891] w-[8%] h-[95%] font-semibold border-2'>Search</button>
+      <input className='w-[60%] h-[95%] p-[.4rem] bg-[#C8C8C8]' type="search" name="" id="" placeholder='Search for products...'/>
+      <select className='h-[95%] w-[8%]' name="" id="">
         <option value="">Popular</option>
         <option value="">Download</option>
         <option value="">Print Count</option>
@@ -16,21 +20,10 @@ const page = () => {
       </select>
     </div>
 
-    <div className="products">
-      <div className='product'>
-        <div className="product-header">
-          <h1>Mini Submarine</h1>
-        </div>
-        <Image src="" alt="" className="product-img" />
-        <div className="product-footer"></div>
-      </div>
-      <div></div>
-      <div></div>
-      <div></div>
+    <div className='w-screen min-h-[84vh] flex-row flex '>
     </div>
     </>
   )
 }
 
-
-export default page
+export default Page
