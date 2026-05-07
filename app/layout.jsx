@@ -1,4 +1,5 @@
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import './globals.css'
 
 export default function RootLayout({ children }) {
@@ -10,7 +11,8 @@ export default function RootLayout({ children }) {
       <body className="min-h-full flex flex-col" cz-shortcut-listen="true">
         <Navbar/>
         {children}
-        </body>
+        <Footer/>
+      </body>
     </html>
   );
 }

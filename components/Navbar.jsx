@@ -22,7 +22,7 @@ const Navbar = () => {
     <>
     { width >= breakpoint ? (
       <section className='flex w-full gap-3 py-1 justify-between bg-[#242325] text-[#bbb891] items-center flex-col md:flex-row sticky top-0'>
-            <h1 id='title' className='text-2xl mx-4'>Student Store</h1>
+            <h1 id='title' className='text-2xl font-bold'>Student Store</h1>
             <div id='pages' className='flex md:flex-row flex-col items-center justify-start h-full m-5 gap-8'>
 
                 <div id='reward' className='m-0'>Rewards</div>
@@ -43,8 +43,9 @@ const Navbar = () => {
       </section>
     ) : (
       <section className='flex w-full gap-3 py-1 justify-evenly bg-[#242325] text-[#bbb891] items-center flex-row md:flex-row sticky top-0'>
-          <h1 id='title' className='text-2xl '>Student Store</h1>
+          <h1 id='title' className='text-2xl font-bold'>Student Store</h1>
           {view ?(
+            
             <section className='absolute flex flex-col top-16 bg-[#242325] p-3 items-center '>
               <button className='' onClick={()=>setView(!view)}><AiFillCaretUp/></button>
               <div id='reward' className='m-0'>Rewards</div>
