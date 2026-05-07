@@ -19,3 +19,5 @@ implement these things:
     crowd funding/donations - Jose
     make a search by user function - Karam
     have the ability to do rough sketches/rough prints - Jose
+
+    create blog model and controllers
