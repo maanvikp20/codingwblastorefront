@@ -22,7 +22,7 @@ const Navbar = () => {
     <>
     { width >= breakpoint ? (
       <section className='flex w-full gap-3 py-1 justify-between bg-[#242325] text-[#bbb891] items-center flex-col md:flex-row sticky top-0'>
-            <h1 id='title' className='text-2xl font-bold'>Student Store</h1>
+            <h1 id='title' className='text-2xl font-bold ml-3'>Student Store</h1>
             <div id='pages' className='flex md:flex-row flex-col items-center justify-start h-full m-5 gap-8'>
 
                 <div id='reward' className='m-0'>Rewards</div>
@@ -38,16 +38,20 @@ const Navbar = () => {
                 <div id='partner' className='m-0'>Partner</div>
 
             </div>
-            <div id='user-plate' className='border rounded-full px-3 py-4'>User</div>
+            <div id='user-plate' className='border rounded-full px-3 py-4 mr-3'>User</div>
 
       </section>
     ) : (
-      <section className='flex w-full gap-3 py-1 justify-evenly bg-[#242325] text-[#bbb891] items-center flex-row md:flex-row sticky top-0'>
-          <h1 id='title' className='text-2xl font-bold'>Student Store</h1>
+      <section className='flex w-full gap-3 py-2 bg-[#242325] text-[#bbb891] items-center flex-row md:flex-row sticky top-0'>
+          <h1 id='title' className='text-2xl font-bold left-20 relative'>Student Store</h1>
           {view ?(
             
-            <section className='absolute flex flex-col top-16 bg-[#242325] p-3 items-center '>
+            <section className='absolute flex flex-col top-12 right-30 bg-[#242325] p-3 items-center '>
               <button className='' onClick={()=>setView(!view)}><AiFillCaretUp/></button>
+
+
+              <div id='user-plate' className='border rounded-full px-3 py-4 mt-2 mb-1'>User</div>
+              <line className='border border-[#bbb891] w-16 mt-1'></line>
               <div id='reward' className='m-0'>Rewards</div>
               <line className='border border-[#bbb891] w-16 mt-1'></line>
               <div id='blog' className='m-0'>Blog</div>
@@ -59,17 +63,19 @@ const Navbar = () => {
               <div id='donate' className='m-0'>Donations</div>
               <line className='border border-[#bbb891] w-16 mt-1'></line>
               <div id='partner' className='m-0'>Partner</div>
+              
+              
             </section>
             
           ):(
-            <button className=' h-8 w-8 flex flex-col justify-evenly px-1' onClick={()=>setView(!view)}>
+            <button className=' h-8 w-8 flex flex-col justify-evenly px-1 relative left-20' onClick={()=>setView(!view)}>
                 <div className='border border-[#bbb891]'></div>
                 <div className='border border-[#bbb891]'></div>
                 <div className='border border-[#bbb891]'></div>
             </button>
           )}
             
-          <div id='user-plate' className='border rounded-full px-3 py-4'>User</div>
+          
       </section>
     )}
     
