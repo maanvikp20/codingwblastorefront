@@ -13,7 +13,7 @@ const Product = ({featured, name, likes, dislikes, user, url}) => {
   }
 
   return (
-    <div className='border-2 rounded-xl w-[30%] h-[52%] relative flex-col' style={{backgroundColor: color}}>
+    <div id={name.toLocaleLowerCase} key={name} className='border-2 rounded-xl w-[30%] h-[52%] relative flex-col' style={{backgroundColor: color}}>
       <div className='p-2 w-full h-[15%] flex flex-row relative gap-12 '>
         <h1 className='text-center h-full w-[29%] text-2xl font-bold text-[#282828]'>{name}</h1>
 
@@ -32,3 +32,4 @@ const Product = ({featured, name, likes, dislikes, user, url}) => {
 }
 
 export default Product
+
