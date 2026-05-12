@@ -1,63 +1,33 @@
-'use client'
+import Image from 'next/image';
 import React, { useState } from 'react'
-import Link from 'next/link'
-import Image from 'next/image'
+import { IoMdThumbsDown,  IoMdThumbsUp} from "react-icons/io";
 
 
-
-
-
-const Product = ({featured = true, name = '3D Bob', like = 12, dislike = 13, price = 4.35, slug = '', authSlug = '', color = '#dc965a', imgURL = '', author = 'Jimmy John', h=200, w=400}) => {
-  const startingLikes = like
-  const startingDislikes = dislike
-  const [likes, setLikes] = useState(like)
-  const [dislikes, setDislikes] = useState(dislike)
-  function increase(){
-    if(likes == startingLikes){
-      setLikes(likes+1)
-      if(dislikes > startingDislikes){
-        setDislikes(dislikes-1)
-      }
-    }
-    
+const Product = ({featured, name, like, dislike, user, url, price}) => {
+  let color
+  if(featured){
+     color = '#e09c64'
   }
-  function decrease(){
-    if(dislikes == startingDislikes){
-      setDislikes(dislikes+1)
-      if(likes > startingLikes){
-        setLikes(likes-1)
-      }
-    }
-  }
+  else {
+     color = '#D6DEE2'
+  } 
   return (
-    <div style = {{'--color': `${color}`}} className= 'bg-[var(--color)] my-4 mx-4 rounded-2xl flex flex-col items-center w-80 lg:w-100 border border-black border-1'>
-      <top className='flex gap-4 items-center font-bold'>
-        <Link href={'/products/'+ slug} className=''>{name}</Link>
-        <h1 className='font-bold'>${price}</h1>
-        <aside className='flex flex-col ml-3'>
-          <section className='flex flex-row gap-2'>
-            <p>{likes}</p>
-            <button onClick={()=>increase()}>^</button>
-          </section>
-          <section className='flex flex-row gap-2'>
-            <p>{dislikes}</p>
-            <button onClick={()=>decrease()}>v</button>
-          </section>    
-        </aside>
-        </top>
-      <mid>
-        <Image src={imgURL || `https://picsum.photos/${w}/${h}`} height = {h} width = {w} alt={name} />
-      </mid>
-      <bottom className='text-xl font-semibold'>
-        <Link href={'/author-profile/' + slug} className=''>By: {author}</Link>
-      </bottom>
+  <div className='border-2 rounded-xl w-[30%] h-[52%] relative flex-col cursor-pointer anim' style={{backgroundColor: color}}>
+      <div className='p-2 w-full h-[15%] flex flex-row relative gap-12 '>
+        <h1 className='text-center h-full w-[29%] text-2xl font-bold text-[#282828]'>{name}</h1>
+
+        <div className='h-full w-[50%]'></div>
+        
+      </div>
+
+      <img src={url} className='w-full h-[75%] object- object-cover' alt="Image did not load" />
       
-      
-      
+      <div className='text-center text-xl font-semibold w-full h-[10%] relative  p-1'>
+        By {user}
+      </div>
     </div>
   )
   
 }
 
 export default Product
-
