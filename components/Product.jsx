@@ -2,12 +2,13 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { BsFillHandThumbsUpFill, BsFillHandThumbsDownFill } from "react-icons/bs";
 
 
 
 
 
-const Product = ({featured = true, name = '3D Bob', like = 12, dislike = 13, price = 4.35, slug = '', authSlug = '', color = '#dc965a', imgURL = '', author = 'Jimmy John', h=200, w=400}) => {
+const Product = ({featured = false, name = '3D Bob', like = 12, dislike = 13, price = 4.35, slug = '', authSlug = '', color = '#dc965a', imgURL = '', author = 'Jimmy John', h=200, w=400}) => {
   const startingLikes = like
   const startingDislikes = dislike
   const [likes, setLikes] = useState(like)
@@ -37,16 +38,33 @@ const Product = ({featured = true, name = '3D Bob', like = 12, dislike = 13, pri
         <aside className='flex flex-col ml-3'>
           <section className='flex flex-row gap-2'>
             <p>{likes}</p>
-            <button onClick={()=>increase()}>^</button>
+            <button onClick={()=>increase()}><BsFillHandThumbsUpFill/></button>
           </section>
           <section className='flex flex-row gap-2'>
             <p>{dislikes}</p>
-            <button onClick={()=>decrease()}>v</button>
-          </section>    
+            <button onClick={()=>decrease()}><BsFillHandThumbsDownFill/></button>
+          </section>
         </aside>
-        </top>
-      <mid>
-        <Image src={imgURL || `https://picsum.photos/${w}/${h}`} height = {h} width = {w} alt={name} />
+      </top>
+      <mid className='relative'>
+        {featured ? 
+        <>
+            <aside className='absolute top-4 right-0 w-16 h-10 bg-green-700 rounded-lg z-1 text-sm text-center font-semibold opacity-70'>
+                Dev Choice
+            </aside>
+            <aside className='absolute top-4 right-0 w-1.5 h-10 bg-green-700 '>
+                
+            </aside>
+            
+        </>
+          
+        :
+          <></>
+        }
+        
+        <Link href={'/products/'+ slug}>
+          <Image src={imgURL || `https://picsum.photos/${w}/${h}`} height = {h} width = {w} alt={name} />
+        </Link>
       </mid>
       <bottom className='text-xl font-semibold'>
         <Link href={'/author-profile/' + slug} className=''>By: {author}</Link>

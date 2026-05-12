@@ -21,12 +21,12 @@ const Page = () => {
     </div>
 
     <div className='w-screen relative min-h-[84vh] ] flex-row flex p-6 flex-wrap justify-around bg-[#CED4DB gap-8'>
-      <Product featured={true} name={'Mini Boat'} likes={129} dislikes={29} user={'CrazyPenguin138'} /> 
-      <Product featured={true} name={'Strawhat'} likes={110} dislikes={8}   user={'AngryPenguin124'} /> 
-      <Product featured={false} name={'Gear'} likes={110} dislikes={8}   user={'AngryPenguin124'} /> 
-      <Product featured={false} name={'Chain'} likes={110} dislikes={8}   user={'AngryPenguin124'} /> 
-      <Product featured={false} name={'Apple'} likes={110} dislikes={8}   user={'AngryPenguin124'} /> 
-\    </div>
+        <Product featured={true} name={'Mini Boat'} likes={129} dislikes={29} user={'CrazyPenguin138'} /> 
+        <Product featured={true} name={'Strawhat'} likes={110} dislikes={8}   user={'AngryPenguin124'} /> 
+        <Product featured={false} name={'Gear'} likes={110} dislikes={8}   user={'AngryPenguin124'} /> 
+        <Product featured={false} name={'Chain'} likes={110} dislikes={8}   user={'AngryPenguin124'} /> 
+        <Product featured={false} name={'Apple'} likes={110} dislikes={8}   user={'AngryPenguin124'} /> 
+    </div>
 
     
     </>
