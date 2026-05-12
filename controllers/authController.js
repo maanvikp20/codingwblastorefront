@@ -1,106 +1,42 @@
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const User = require("@/models/User");
+import connectDB   from "@/lib/MongoDB";
+import User        from "@/models/User";
+import { signToken } from "@/lib/jwt";
+import { ApiError }  from "@/middleware/errorHandling";
 
-function signToken(user) {
-  return jwt.sign(
-    {
-      email: user.email,
-      name: user.name,
-      role: user.role,
-    },
-    process.env.JWT_SECRET,
-    {
-      subject: String(user._id),
-      expiresIn: process.env.JWT_EXPIRES_IN || "7d",
-    }
-  );
+// Register 
+export async function registerUser({ username, email, password }) {
+  await connectDB();
+
+  const exists = await User.findOne({ $or: [{ email }, { username }] });
+  if (exists) throw new ApiError("Username or email already taken", 409);
+
+  const user  = await User.create({ username, email, password });
+  const token = signToken({ id: user._id, email: user.email, role: user.role });
+
+  return { user: user.toSafeObject(), token };
 }
 
-async function register(body) {
-  const { name, email, password } = body;
+// Login 
+export async function loginUser({ email, password }) {
+  await connectDB();
 
-  if (!name || !email || !password) {
-    return Response.json(
-      { error: "name, email, and password are required" },
-      { status: 400 }
-    );
+  const user = await User.findOne({ email }).select("+password");
+  if (!user || !(await user.comparePassword(password))) {
+    throw new ApiError("Invalid credentials", 401);
   }
+  if (!user.isActive) throw new ApiError("Account is deactivated", 403);
 
-  const existing = await User.findOne({ email: email.toLowerCase() });
-  if (existing) {
-    return Response.json(
-      { error: "Email already in use" },
-      { status: 409 }
-    );
-  }
+  user.lastLogin = new Date();
+  await user.save();
 
-  const passwordHash = await bcrypt.hash(password, 12);
-
-  const created = await User.create({
-    name,
-    email: email.toLowerCase(),
-    passwordHash,
-  });
-
-  const token = signToken(created);
-
-  return Response.json(
-    {
-      data: {
-        token,
-        user: {
-          id: created._id,
-          name: created.name,
-          email: created.email,
-        },
-      },
-    },
-    { status: 201 }
-  );
+  const token = signToken({ id: user._id, email: user.email, role: user.role });
+  return { user: user.toSafeObject(), token };
 }
 
-async function login(body) {
-  const { email, password } = body;
-
-  if (!email || !password) {
-    return Response.json(
-      { error: "email and password are required" },
-      { status: 400 }
-    );
-  }
-
-  const user = await User.findOne({ email: email.toLowerCase() });
-  if (!user) {
-    return Response.json(
-      { error: "Invalid Credentials" },
-      { status: 401 }
-    );
-  }
-
-  const ok = await bcrypt.compare(password, user.passwordHash);
-  if (!ok) {
-    return Response.json(
-      { error: "Invalid Credentials" },
-      { status: 401 }
-    );
-  }
-
-  const token = signToken(user);
-
-  return Response.json({
-    data: {
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        cart: user.cart,
-      },
-    },
-  });
+// Get current user profile
+export async function getMe(userId) {
+  await connectDB();
+  const user = await User.findById(userId).select("-password");
+  if (!user) throw new ApiError("User not found", 404);
+  return user;
 }
-
-module.exports = { login };
-module.exports = { register };

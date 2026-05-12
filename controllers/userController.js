@@ -1,75 +1,77 @@
-const User = require('@/models/User');
+import connectDB from "@/lib/MongoDB";
+import User      from "@/models/User";
+import Product   from "@/models/Product";
+import { ApiError } from "@/middleware/errorHandling";
 
-async function getAllUsers(req, res, next) {
-    try{
-        const users = await User.find().sort({createdAt: -1}).select('-passwordHash');
-        res.json({data: users});
-    }catch(err){
-        next(err);
-    }
+// Get public profile
+export async function getUserProfile(username) {
+  await connectDB();
+  const user = await User.findOne({ username }).select(
+    "-password -dislikedProducts -donations"
+  );
+  if (!user) throw new ApiError("User not found", 404);
+  return user;
 }
 
-async function getUserById(req, res, next) {
-  try {
-    const user = await User.findById(req.params.id).select('-passwordHash');
-    if (!user) return res.status(404).json({message: "User not found"});
-    res.json({data: user});
-  } catch (err) {
-    next(err);
+// Update own profile
+export async function updateProfile(userId, { username, bio, avatar }) {
+  await connectDB();
+
+  const update = {};
+  if (username !== undefined) update.username = username;
+  if (bio       !== undefined) update.bio      = bio;
+  if (avatar    !== undefined) update.avatar   = avatar;
+
+  const user = await User.findByIdAndUpdate(userId, update, {
+    new:          true,
+    runValidators: true,
+  }).select("-password");
+
+  if (!user) throw new ApiError("User not found", 404);
+  return user;
+}
+
+// Get recommendations (exclude disliked categories/tags)
+export async function getRecommendations(userId, { page = 1, limit = 20 } = {}) {
+  await connectDB();
+
+  const user = await User.findById(userId).populate("dislikedProducts");
+  if (!user) throw new ApiError("User not found", 404);
+
+  // Build a set of tags/categories from disliked products to avoid
+  const dislikedTags       = new Set();
+  const dislikedCategories = new Set();
+  const dislikedIds        = user.dislikedProducts.map((p) => p._id);
+
+  for (const p of user.dislikedProducts) {
+    (p.tags || []).forEach((t) => dislikedTags.add(t));
+    if (p.category) dislikedCategories.add(p.category);
   }
-}
 
-const createUser = async (req, res, next) => {
-    try{
-        const newUser = new User(req.body);
-        await newUser.save();
-        
-        const userResponse = newUser.toObject();
-        delete userResponse.passwordHash;
-        
-        res.status(201).json({data: userResponse});
-    }catch(err){
-        next(err);
-    }
-}
+  // Prefer liked tags/categories
+  const likedProducts = await Product.find({ _id: { $in: user.likedProducts } }).select("tags category");
+  const likedTags       = new Set();
+  const likedCategories = new Set();
+  for (const p of likedProducts) {
+    (p.tags || []).forEach((t) => likedTags.add(t));
+    if (p.category) likedCategories.add(p.category);
+  }
 
-async function updateUser(req, res, next){
-    try{
-        const updatedUser = await User.findByIdAndUpdate(
-            req.params.id, 
-            {
-                name: req.body.name,
-                email: req.body.email,
-                cart: req.body.cart,
-            }, 
-            {new: true}
-        ).select('-passwordHash');
-        
-        if(!updatedUser){
-            return res.status(404).json({message: "User not found"});
-        }
-        res.json({data: updatedUser}); // Added response
-    }catch(err){
-        next(err);
-    }
-}
+  const mustAvoid = {
+    _id:      { $nin: [...dislikedIds, ...user.viewedProducts] },
+    status:   "approved",
+    tags:     { $nin: [...dislikedTags] },
+    category: { $nin: [...dislikedCategories] },
+  };
 
-async function deleteUser(req, res, next){
-    try{
-        const deletedUser = await User.findByIdAndDelete(req.params.id);
-        if(!deletedUser){
-            return res.status(404).json({message: "User not found"});
-        }
-        res.json({message: "User deleted successfully"});
-    }catch(err){
-        next(err);
-    }
-}
+  const [products, total] = await Promise.all([
+    Product.find(mustAvoid)
+      .sort({ score: -1 })
+      .skip((page - 1) * limit)
+      .limit(Number(limit))
+      .populate("creator", "username avatar"),
+    Product.countDocuments(mustAvoid),
+  ]);
 
-module.exports = {
-    getAllUsers,
-    getUserById,
-    createUser,
-    updateUser,
-    deleteUser
-};
+  return { products, total };
+}

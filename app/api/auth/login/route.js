@@ -1,7 +1,12 @@
-import { login } from "@/controllers/authController";
+import { loginUser }           from "@/controllers/authController";
+import { withErrorHandling }   from "@/middleware/errorHandling";
 
-export async function POST(req) {
-  const body = await req.json();
+export const POST = withErrorHandling(async (req) => {
+  const { email, password } = await req.json();
+  if (!email || !password) {
+    return Response.json({ success: false, message: "Email and password required" }, { status: 400 });
+  }
 
-  return login(body);
-}
+  const result = await loginUser({ email, password });
+  return Response.json({ success: true, ...result });
+});

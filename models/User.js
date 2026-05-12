@@ -1,16 +1,59 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
-const userSchema = new mongoose.Schema(
+const UserSchema = new mongoose.Schema(
   {
-    name: {type: String, required: true},
-    email: {type: String, required: true, unique: true},
-    address: {type: String, match: /^\d{1,6}\s[A-Za-z0-9.\s]+,\s?[A-Za-z\s]+,\s?[A-Z]{2}\s\d{5}(-\d{4})?$/, required: true},
-    passwordHash: {type: String, required: true},
-    phoneNumber: {type: String, match:/^(\()?\d{3}(\))?(-|\s)?\d{3}(-|\s)\d{4}$/, required: true},
-    cart: {type: Array, default: []},
-    role: {type: String, enum: ["user", "admin", "partner", "student"], default: "user"}
-    
-  },{timestamps: true}
+    username: { type: String, required: true, unique: true, trim: true },
+    email:    { type: String, required: true, unique: true, lowercase: true },
+    password: { type: String, required: true, select: false },
+    role:     { type: String, enum: ["user", "partner", "admin"], default: "user" },
+    avatar:   { type: String, default: "" },
+    bio:      { type: String, default: "" },
+
+    // Partner-specific
+    partnerInfo: {
+      companyName:  { type: String },
+      website:      { type: String },
+      description:  { type: String },
+      approved:     { type: Boolean, default: false },
+      joinedAt:     { type: Date },
+    },
+
+    // Interaction tracking
+    dislikedProducts:  [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
+    likedProducts:     [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
+    viewedProducts:    [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
+
+    // Donation / funding
+    donations: [
+      {
+        productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+        amount:    { type: Number },
+        date:      { type: Date, default: Date.now },
+      },
+    ],
+
+    isActive:  { type: Boolean, default: true },
+    lastLogin: { type: Date },
+  },
+  { timestamps: true }
 );
 
-module.exports = mongoose.models.User || mongoose.model("User", userSchema)
+// Hash password
+UserSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  this.password = await bcrypt.hash(this.password, 12);
+  next();
+});
+
+UserSchema.methods.comparePassword = async function (candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
+};
+
+UserSchema.methods.toSafeObject = function () {
+  const obj = this.toObject();
+  delete obj.password;
+  return obj;
+};
+
+export default mongoose.models.User || mongoose.model("User", UserSchema);
