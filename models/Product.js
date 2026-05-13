@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 
-// Comment Sub-document
 const CommentSchema = new mongoose.Schema(
   {
     author:  { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -18,24 +17,22 @@ const CommentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Report Sub-document 
 const ReportSchema = new mongoose.Schema(
   {
     reporter: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    reason:   {
+    reason: {
       type: String,
       enum: ["spam", "inappropriate", "copyright", "misleading", "other"],
       required: true,
     },
-    details:  { type: String, maxlength: 1000 },
-    status:   { type: String, enum: ["pending", "reviewed", "dismissed", "actioned"], default: "pending" },
+    details:    { type: String, maxlength: 1000 },
+    status:     { type: String, enum: ["pending", "reviewed", "dismissed", "actioned"], default: "pending" },
     reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     reviewedAt: { type: Date },
   },
   { timestamps: true }
 );
 
-// Crowdfunding / Donation Sub-document
 const DonationSchema = new mongoose.Schema(
   {
     donor:     { type: mongoose.Schema.Types.ObjectId, ref: "User" },
@@ -47,83 +44,81 @@ const DonationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Main Product Schema
 const ProductSchema = new mongoose.Schema(
   {
     title:       { type: String, required: true, trim: true },
+    // ✅ slug added here — single definition, no duplicate
+    slug:        { type: String, required: true, unique: true, lowercase: true, trim: true },
     description: { type: String, required: true },
     creator:     { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 
     // Media
-    images:    [{ type: String }],  // Cloudinary URLs
-    modelFile: { type: String },     // File URL
+    images:    [{ type: String }],
+    modelFile: { type: String },
     thumbnail: { type: String },
 
-    // Categorization & Discovery
+    // Categorization
     category:   { type: String, required: true },
     tags:       [{ type: String }],
     material:   { type: String },
     color:      { type: String },
     difficulty: { type: String, enum: ["easy", "medium", "hard", "expert"] },
-    printTime:  { type: Number },  // minutes
-    filament:   { type: Number },  // grams
+    printTime:  { type: Number },
+    filament:   { type: Number },
     scale:      { type: String },
 
     // Pricing
-    price:    { type: Number, default: 0 },    // 0 = free
-    isFree:   { type: Boolean, default: true },
+    price:  { type: Number, default: 0 },
+    isFree: { type: Boolean, default: true },
 
     // Availability
     availability: {
       status:       { type: String, enum: ["available", "limited", "unavailable", "preorder"], default: "available" },
-      stock:        { type: Number, default: null },  // null = unlimited
+      stock:        { type: Number, default: null },
       preorderDate: { type: Date },
       note:         { type: String },
     },
 
     // Admin Controls
-    status:     { type: String, enum: ["pending", "approved", "rejected", "flagged"], default: "pending" },
-    featured:   { type: Boolean, default: false },
-    isPrintOfDay: { type: Boolean, default: false },
+    status:        { type: String, enum: ["pending", "approved", "rejected", "flagged"], default: "pending" },
+    featured:      { type: Boolean, default: false },
+    isPrintOfDay:  { type: Boolean, default: false },
     printOfDayDate: { type: Date },
-    adminNotes: { type: String },
-    approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    approvedAt: { type: Date },
+    adminNotes:    { type: String },
+    approvedBy:    { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    approvedAt:    { type: Date },
 
-    // Sketch / Rough Print
+    // Sketch
     isRoughSketch: { type: Boolean, default: false },
     sketchNotes:   { type: String },
 
-    // Interaction Scores (for dislike algorithm)
-    likes:    [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    dislikes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    views:    { type: Number, default: 0 },
+    // Interactions
+    likes:        [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    dislikes:     [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    views:        { type: Number, default: 0 },
     likeCount:    { type: Number, default: 0 },
     dislikeCount: { type: Number, default: 0 },
-    // Score computed field (higher = more liked, lower = pushed down)
-    score:    { type: Number, default: 0 },
+    score:        { type: Number, default: 0 },
 
-    // Comments
-    comments: [CommentSchema],
-
-    // Reports
-    reports: [ReportSchema],
+    // Comments & Reports
+    comments:    [CommentSchema],
+    reports:     [ReportSchema],
     reportCount: { type: Number, default: 0 },
 
     // Crowdfunding
     crowdfunding: {
-      enabled:   { type: Boolean, default: false },
-      goal:      { type: Number, default: 0 },
-      raised:    { type: Number, default: 0 },
-      deadline:  { type: Date },
-      backers:   { type: Number, default: 0 },
+      enabled:  { type: Boolean, default: false },
+      goal:     { type: Number, default: 0 },
+      raised:   { type: Number, default: 0 },
+      deadline: { type: Date },
+      backers:  { type: Number, default: 0 },
     },
     donations: [DonationSchema],
   },
   { timestamps: true }
 );
 
-// Indexes
+// ✅ Indexes — slug is already unique via schema definition above, not repeated here
 ProductSchema.index({ title: "text", description: "text", tags: "text" });
 ProductSchema.index({ score: -1 });
 ProductSchema.index({ featured: 1, status: 1 });
@@ -131,7 +126,7 @@ ProductSchema.index({ isPrintOfDay: 1 });
 ProductSchema.index({ creator: 1 });
 ProductSchema.index({ category: 1, status: 1 });
 
-// Middleware: recompute score before save
+// Score recalculation
 ProductSchema.pre("save", function (next) {
   this.likeCount    = this.likes.length;
   this.dislikeCount = this.dislikes.length;
@@ -141,10 +136,9 @@ ProductSchema.pre("save", function (next) {
   } else {
     const p = this.likeCount / n;
     const z = 1.96;
-    const score =
+    this.score =
       (p + (z * z) / (2 * n) - z * Math.sqrt((p * (1 - p) + (z * z) / (4 * n)) / n)) /
       (1 + (z * z) / n);
-    this.score = score;
   }
   this.reportCount = this.reports.length;
   next();

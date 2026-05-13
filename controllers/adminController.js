@@ -1,7 +1,7 @@
 import connectDB from "@/lib/MongoDB";
-import Product   from "@/models/Product";
-import User      from "@/models/User";
-import Blog      from "@/models/Blog";
+import Product from "@/models/Product";
+import User from "@/models/User";
+import Blog from "@/models/Blog";
 import { ApiError } from "@/middleware/errorHandling";
 
 // Dashboard Stats
@@ -24,21 +24,33 @@ export async function getDashboardStats() {
     Product.countDocuments({ "reports.status": "pending" }),
   ]);
 
-  return { totalProducts, pendingProducts, totalUsers, totalBlogs, flaggedProducts, pendingReports };
+  return {
+    totalProducts,
+    pendingProducts,
+    totalUsers,
+    totalBlogs,
+    flaggedProducts,
+    pendingReports,
+  };
 }
 
-// Approve / Reject Product 
-export async function reviewProduct(productId, adminId, action, adminNotes = "") {
+// Approve / Reject Product
+export async function reviewProduct(
+  productId,
+  adminId,
+  action,
+  adminNotes = "",
+) {
   await connectDB();
 
   const product = await Product.findById(productId);
-  if (!product) throw new ApiError("Product not found", 404);
+  if (!product) throw new Error("Product not found");
 
   if (!["approved", "rejected", "flagged"].includes(action)) {
     throw new ApiError("Invalid action", 400);
   }
 
-  product.status     = action;
+  product.status = action;
   product.adminNotes = adminNotes;
   product.approvedBy = adminId;
   product.approvedAt = new Date();
@@ -60,7 +72,12 @@ export async function getPendingProducts({ page = 1, limit = 20 } = {}) {
     Product.countDocuments({ status: "pending" }),
   ]);
 
-  return { products, total, page: Number(page), pages: Math.ceil(total / limit) };
+  return {
+    products,
+    total,
+    page: Number(page),
+    pages: Math.ceil(total / limit),
+  };
 }
 
 // Feature / Un-feature Product
@@ -69,9 +86,9 @@ export async function setFeatured(productId, featured) {
   const product = await Product.findByIdAndUpdate(
     productId,
     { featured: Boolean(featured) },
-    { new: true }
+    { new: true },
   );
-  if (!product) throw new ApiError("Product not found", 404);
+  if (!product) throw new Error("Product not found");
   return product;
 }
 
@@ -85,14 +102,18 @@ export async function setPrintOfDay(productId) {
   const product = await Product.findByIdAndUpdate(
     productId,
     { isPrintOfDay: true, printOfDayDate: new Date() },
-    { new: true }
+    { new: true },
   );
-  if (!product) throw new ApiError("Product not found", 404);
+  if (!product) throw new Error("Product not found");
   return product;
 }
 
 // Get Reports ────────────────────────────────────────────────────────────
-export async function getReports({ page = 1, limit = 20, status = "pending" } = {}) {
+export async function getReports({
+  page = 1,
+  limit = 20,
+  status = "pending",
+} = {}) {
   await connectDB();
 
   // Aggregate products that have reports matching the given status
@@ -105,7 +126,12 @@ export async function getReports({ page = 1, limit = 20, status = "pending" } = 
     .limit(Number(limit));
 
   const total = await Product.countDocuments({ "reports.status": status });
-  return { products, total, page: Number(page), pages: Math.ceil(total / limit) };
+  return {
+    products,
+    total,
+    page: Number(page),
+    pages: Math.ceil(total / limit),
+  };
 }
 
 // Resolve Report
@@ -113,12 +139,12 @@ export async function resolveReport(productId, reportId, adminId, resolution) {
   await connectDB();
 
   const product = await Product.findById(productId);
-  if (!product) throw new ApiError("Product not found", 404);
+  if (!product) throw new Error("Product not found");
 
   const report = product.reports.id(reportId);
   if (!report) throw new ApiError("Report not found", 404);
 
-  report.status     = resolution; // "reviewed" | "dismissed" | "actioned"
+  report.status = resolution; // "reviewed" | "dismissed" | "actioned"
   report.reviewedBy = adminId;
   report.reviewedAt = new Date();
 
@@ -130,7 +156,7 @@ export async function resolveReport(productId, reportId, adminId, resolution) {
   return product;
 }
 
-// Manage Users 
+// Manage Users
 export async function listUsers({ page = 1, limit = 20, role, search } = {}) {
   await connectDB();
 
@@ -139,7 +165,7 @@ export async function listUsers({ page = 1, limit = 20, role, search } = {}) {
   if (search) {
     query.$or = [
       { username: { $regex: search, $options: "i" } },
-      { email:    { $regex: search, $options: "i" } },
+      { email: { $regex: search, $options: "i" } },
     ];
   }
 
@@ -157,7 +183,11 @@ export async function listUsers({ page = 1, limit = 20, role, search } = {}) {
 
 export async function updateUserRole(userId, role) {
   await connectDB();
-  const user = await User.findByIdAndUpdate(userId, { role }, { new: true }).select("-password");
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { role },
+    { new: true },
+  ).select("-password");
   if (!user) throw new ApiError("User not found", 404);
   return user;
 }

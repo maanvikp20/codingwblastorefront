@@ -2,32 +2,33 @@ import { listProducts, createProduct } from "@/controllers/productController";
 import { withErrorHandling }           from "@/middleware/errorHandling";
 import { requireAuth }                 from "@/middleware/requireAuth";
 
-// GET /api/product  — public, supports filters via query params
 export const GET = withErrorHandling(async (req) => {
   const { searchParams } = new URL(req.url);
 
+  const get  = (key) => searchParams.get(key) || undefined;
+  const tags = searchParams.getAll("tags").filter(Boolean);
+
   const params = {
-    page:          searchParams.get("page")         || 1,
-    limit:         searchParams.get("limit")        || 20,
-    category:      searchParams.get("category"),
-    tags:          searchParams.getAll("tags"),
-    material:      searchParams.get("material"),
-    difficulty:    searchParams.get("difficulty"),
-    minPrice:      searchParams.get("minPrice"),
-    maxPrice:      searchParams.get("maxPrice"),
-    isFree:        searchParams.get("isFree") !== null ? searchParams.get("isFree") === "true" : undefined,
-    isRoughSketch: searchParams.get("isRoughSketch") !== null ? searchParams.get("isRoughSketch") === "true" : undefined,
-    availability:  searchParams.get("availability"),
-    search:        searchParams.get("search"),
-    sortBy:        searchParams.get("sortBy"),
-    sortOrder:     searchParams.get("sortOrder"),
+    page:          Number(get("page")  || 1),
+    limit:         Number(get("limit") || 20),
+    category:      get("category"),
+    tags:          tags.length ? tags : undefined,
+    material:      get("material"),
+    difficulty:    get("difficulty"),
+    minPrice:      get("minPrice"),
+    maxPrice:      get("maxPrice"),
+    isFree:        searchParams.has("isFree")        ? searchParams.get("isFree")        === "true" : undefined,
+    isRoughSketch: searchParams.has("isRoughSketch") ? searchParams.get("isRoughSketch") === "true" : undefined,
+    availability:  get("availability"),
+    search:        get("search"),
+    sortBy:        get("sortBy")    || "createdAt",
+    sortOrder:     get("sortOrder") || "desc",
   };
 
   const result = await listProducts(params);
   return Response.json({ success: true, ...result });
 });
 
-// POST /api/product  — authenticated users only
 export const POST = withErrorHandling(
   requireAuth(async (req, _ctx, user) => {
     const body    = await req.json();

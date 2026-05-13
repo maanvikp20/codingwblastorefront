@@ -1,51 +1,38 @@
-function errorHandler(err, req, res, next) {
-  if (process.env.NODE_ENV !== "production") {
-    console.error("API Error:", err.stack);
-  } else {
-    console.error("API Error:", err.message);
+export class ApiError extends Error {
+  constructor(message, statusCode = 500) {
+    super(message);
+    this.statusCode = statusCode;
+    this.success = false;
   }
-
-  // invalid ObjectId (e.g. /users/not-an-id)
-  if (err.name === "CastError") {
-    return res.status(400).json({ error: "Invalid ID format" });
-  }
-
-  // schema validation failed
-  if (err.name === "ValidationError") {
-    return res.status(400).json({
-      error: "Validation failed",
-      details: Object.values(err.errors).map(e => e.message)
-    });
-  }
-
-  // duplicate unique field
-  if (err.name === "MongoServerError" && err.code === 11000) {
-    const field = Object.keys(err.keyValue)[0];
-    return res.status(409).json({
-      error: `${field} is already in use`
-    });
-  }
-
-  // JWT errors
-  if (err.name === "JsonWebTokenError") {
-    return res.status(401).json({ error: "Invalid token" });
-  }
-
-  if (err.name === "TokenExpiredError") {
-    return res.status(401).json({ error: "Token has expired" });
-  }
-
-  // Multer / Cloudinary upload errors
-  if (err.message && err.message.toLowerCase().includes("file")) {
-    return res.status(400).json({ error: err.message });
-  }
-
-  // Default: unexpected server error
-  res.status(err.status || 500).json({
-    error: process.env.NODE_ENV === "production"
-      ? "An unexpected error occurred"
-      : err.message || "Server error"
-  });
 }
 
-module.exports = errorHandler;
+function formatLog(req, status, message) {
+  const method = req?.method || "UNKNOWN";
+  const url = req?.url || "UNKNOWN";
+
+  console.log(`[${status}] ${method} ${url} → ${message}`);
+}
+
+export function withErrorHandling(handler) {
+  return async (req, ctx) => {
+    try {
+      return await handler(req, ctx);
+    } catch (err) {
+      const status = err.statusCode || 500;
+
+      formatLog(req, status, err.message);
+
+      if (process.env.DEBUG === "true") {
+        console.error(err.stack);
+      }
+
+      return Response.json(
+        {
+          success: false,
+          error: err.message || "Server error",
+        },
+        { status }
+      );
+    }
+  };
+}

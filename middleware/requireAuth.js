@@ -1,23 +1,28 @@
-require('dotenv').config();
-const jwt = require('jsonwebtoken');
+import { verifyToken } from "@/lib/jwt";
+import { ApiError } from "@/middleware/errorHandling";
 
-function requireAuth(req, res, next){
-  try{
-    const authHeader = req.headers.authorization || ""
-    const [scheme, token] = authHeader.split(" ")
+export function getAuthUser(req) {
+  const authHeader =
+    req.headers.get("authorization") ||
+    req.headers.get("Authorization");
 
-    if(scheme !== "Bearer" || !token){
-      return res.status(401).json({error: "Missing or invalid Authorization Header"})
-    }
+  if (!authHeader) throw new ApiError("Unauthorized", 401);
 
-    const payload = jwt.verify(token, process.env.JWT_SECRET)
+  const token = authHeader.replace("Bearer ", "");
+  const decoded = verifyToken(token);
 
-    req.user = {id:payload.sub, email: payload.email, name: payload.name, role: payload.role}
-        
-    next();
-  }catch(err){
-    res.status(401).json({error: 'Unauthorized'})
-  }
+  if (!decoded) throw new ApiError("Unauthorized", 401);
+
+  return {
+    id: decoded.id,
+    email: decoded.email,
+    role: decoded.role,
+  };
 }
 
-module.exports = {requireAuth};
+export function requireAuth(handler) {
+  return async (req, ctx) => {
+    const user = getAuthUser(req);
+    return handler(req, ctx, user);
+  };
+}

@@ -1,9 +1,9 @@
-import { getProduct }        from "@/controllers/productController";
+import { getProduct } from "@/controllers/productController";
 import { withErrorHandling } from "@/middleware/errorHandling";
-import { requireAuth }       from "@/middleware/requireAuth";
-import connectDB             from "@/lib/MongoDB";
-import Product               from "@/models/Product";
-import { ApiError }          from "@/middleware/errorHandling";
+import { requireAuth } from "@/middleware/requireAuth";
+import connectDB from "@/lib/MongoDB";
+import Product from "@/models/Product";
+import { ApiError } from "@/middleware/errorHandling";
 
 // GET /api/product/[id]
 export const GET = withErrorHandling(async (_req, { params }) => {
@@ -16,7 +16,7 @@ export const PATCH = withErrorHandling(
   requireAuth(async (req, { params }, user) => {
     await connectDB();
     const product = await Product.findById(params.id);
-    if (!product) throw new ApiError("Product not found", 404);
+    if (!product) throw new Error("Product not found");
 
     if (product.creator.toString() !== user.id && user.role !== "admin") {
       throw new ApiError("Not authorised", 403);
@@ -29,7 +29,7 @@ export const PATCH = withErrorHandling(
     await product.save();
 
     return Response.json({ success: true, product });
-  })
+  }),
 );
 
 // DELETE /api/product/[id]
@@ -37,7 +37,7 @@ export const DELETE = withErrorHandling(
   requireAuth(async (_req, { params }, user) => {
     await connectDB();
     const product = await Product.findById(params.id);
-    if (!product) throw new ApiError("Product not found", 404);
+    if (!product) throw new Error("Product not found");
 
     if (product.creator.toString() !== user.id && user.role !== "admin") {
       throw new ApiError("Not authorised", 403);
@@ -45,5 +45,5 @@ export const DELETE = withErrorHandling(
 
     await product.deleteOne();
     return Response.json({ success: true, message: "Product deleted" });
-  })
+  }),
 );
