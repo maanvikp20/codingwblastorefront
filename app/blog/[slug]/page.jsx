@@ -34,7 +34,7 @@ export default function BlogPostPage({ params }) {
 
   return (
     <div className="flex w-full min-h-screen flex-col items-center">
-      <div className="bg-[#b3b3b3] p-3 m-5 w-[50vw] flex flex-row lg:flex-col items-center">
+      <div className="bg-[#b3b3b3] p-3 m-5 w-[90vw] lg:w-[50vw] flex flex-row lg:flex-col items-center">
         <div className="flex justify-center flex-col p-3">
           <h1 className="text-4xl m-3">{data.header ? data.header : "Testing Testing One Two Three!"}</h1>
           {data.image ? <Image src={data.image} alt="" width="1000000" height="100" className=" border-6 border-black"/> : <Image src="https://www.dummyimage.com/600x400/000/fff" alt="" width="1000000" height="100" className=" border-6 border-black"/> }
