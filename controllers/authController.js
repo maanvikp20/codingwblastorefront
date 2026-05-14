@@ -1,80 +1,61 @@
-import connectDB from "@/lib/MongoDB";
+import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
-import { signToken } from "@/lib/jwt";
-import { ApiError } from "@/middleware/errorHandling";
+import { signToken, verifyToken } from "@/lib/jwt";
 
-export async function registerUser({ username, email, password }) {
+// register a new user
+export async function register(req) {
   await connectDB();
+  const { name, email, password, phoneNumber } = await req.json();
 
-  email = email.toLowerCase().trim();
-  username = username.trim();
+  const exists = await User.findOne({ email });
+  if (exists) throw Object.assign(new Error("Email already in use"), { status: 400 });
 
-  const exists = await User.findOne({
-    $or: [{ email }, { username }],
-  });
+  const user = await User.create({ name, email, password, phoneNumber });
+  const token = signToken({ id: user._id, email: user.email, role: user.role });
 
-  if (exists) {
-    throw new ApiError("Username or email already taken", 409);
-  }
-
-  const user = await User.create({
-    username,
-    email,
-    password,
-  });
-
-  const token = signToken({
-    id: user._id.toString(),
-    email: user.email,
-    role: user.role,
-  });
-
-  return { user: user.toSafeObject(), token };
+  return Response.json({ success: true, token, user: user.toSafeObject() });
 }
 
-export async function loginUser({ email, password }) {
+// login user and issue tokens
+export async function login(req) {
   await connectDB();
-
-  email = email.toLowerCase().trim();
+  const { email, password } = await req.json();
 
   const user = await User.findOne({ email }).select("+password");
+  if (!user || !(await user.comparePassword(password)))
+    throw Object.assign(new Error("Invalid credentials"), { status: 401 });
 
-  if (!user) {
-    throw new ApiError("User not found", 401);
-  }
+  if (!user.isActive)
+    throw Object.assign(new Error("Account is deactivated"), { status: 403 });
 
-  const isMatch = await user.comparePassword(password);
+  user.lastLogin = new Date();
+  await user.save();
 
-  if (!isMatch) {
-    throw new ApiError("Invalid credentials", 401);
-  }
+  const token = signToken({ id: user._id, email: user.email, role: user.role });
+  const refreshToken = signToken({ id: user._id, email: user.email, role: user.role }, "30d");
 
-  if (!user.isActive) {
-    throw new ApiError("Account is deactivated", 403);
-  }
-
-  await User.findByIdAndUpdate(user._id, { lastLogin: new Date() });
-
-  const token = signToken({
-    id: user._id.toString(),
-    email: user.email,
-    role: user.role,
-  });
-
-  return {
-    user: user.toSafeObject(),
-    token,
-  };
+  return Response.json({ success: true, token, refreshToken, user: user.toSafeObject() });
 }
 
-export async function getMe(userId) {
+// get new access token using refresh token
+export async function refresh(req) {
+  const { refreshToken } = await req.json();
+  if (!refreshToken) throw Object.assign(new Error("No refresh token"), { status: 400 });
+
+  const decoded = verifyToken(refreshToken);
+  if (!decoded) throw Object.assign(new Error("Invalid refresh token"), { status: 401 });
+
   await connectDB();
+  const user = await User.findById(decoded.id);
+  if (!user || !user.isActive) throw Object.assign(new Error("User not found"), { status: 401 });
 
-  const user = await User.findById(userId).select("-password");
+  const token = signToken({ id: user._id, email: user.email, role: user.role });
+  return Response.json({ success: true, token });
+}
 
-  if (!user) {
-    throw new ApiError("User not found", 404);
-  }
-
-  return user;
+// get current logged in user profile
+export async function getMe(req, ctx, user) {
+  await connectDB();
+  const found = await User.findById(user.id).select("-password");
+  return Response.json({ success: true, user: found });
 }

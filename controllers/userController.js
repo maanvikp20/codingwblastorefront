@@ -1,77 +1,69 @@
-import connectDB from "@/lib/MongoDB";
-import User      from "@/models/User";
-import Product   from "@/models/Product";
-import { ApiError } from "@/middleware/errorHandling";
+import connectDB from "@/lib/mongodb";
+import User from "@/models/User";
+import Product from "@/models/Product";
+import Blog from "@/models/Blog";
+import Review from "@/models/Review";
 
-// Get public profile
-export async function getUserProfile(username) {
+// get user profile
+export async function getUser(req, { params }) {
   await connectDB();
-  const user = await User.findOne({ username }).select(
-    "-password -dislikedProducts -donations"
+  const user = await User.findById(params.id).select("-password");
+  if (!user) throw Object.assign(new Error("User not found"), { status: 404 });
+  return Response.json({ success: true, user });
+}
+
+// update profile
+export async function updateUser(req, { params }, user) {
+  await connectDB();
+  if (params.id !== user.id && user.role !== "admin")
+    throw Object.assign(new Error("Forbidden"), { status: 403 });
+
+  const { name, avatar, bio, phoneNumber } = await req.json();
+  const updated = await User.findByIdAndUpdate(
+    params.id,
+    { name, avatar, bio, phoneNumber },
+    { new: true },
+  ).select("-password");
+  return Response.json({ success: true, user: updated });
+}
+
+// delete option for user account
+export async function deleteUser(req, { params }, user) {
+  await connectDB();
+  if (params.id !== user.id && user.role !== "admin")
+    throw Object.assign(new Error("Forbidden"), { status: 403 });
+
+  const userProducts = await Product.find({ author: params.id }).select("_id");
+  const productIds = userProducts.map((p) => p._id);
+
+  // Clean up reviews and items
+  await Review.deleteMany({ product: { $in: productIds } });
+  await Product.deleteMany({ author: params.id });
+  await Blog.deleteMany({ author: params.id });
+
+  // Handle reviews user left on other products
+  const otherReviews = await Review.find({ author: params.id }).select(
+    "product",
   );
-  if (!user) throw new ApiError("User not found", 404);
-  return user;
-}
+  await Review.deleteMany({ author: params.id });
 
-// Update own profile
-export async function updateProfile(userId, { username, bio, avatar }) {
-  await connectDB();
-
-  const update = {};
-  if (username !== undefined) update.username = username;
-  if (bio       !== undefined) update.bio      = bio;
-  if (avatar    !== undefined) update.avatar   = avatar;
-
-  const user = await User.findByIdAndUpdate(userId, update, {
-    new:          true,
-    runValidators: true,
-  }).select("-password");
-
-  if (!user) throw new ApiError("User not found", 404);
-  return user;
-}
-
-// Get recommendations (exclude disliked categories/tags)
-export async function getRecommendations(userId, { page = 1, limit = 20 } = {}) {
-  await connectDB();
-
-  const user = await User.findById(userId).populate("dislikedProducts");
-  if (!user) throw new ApiError("User not found", 404);
-
-  // Build a set of tags/categories from disliked products to avoid
-  const dislikedTags       = new Set();
-  const dislikedCategories = new Set();
-  const dislikedIds        = user.dislikedProducts.map((p) => p._id);
-
-  for (const p of user.dislikedProducts) {
-    (p.tags || []).forEach((t) => dislikedTags.add(t));
-    if (p.category) dislikedCategories.add(p.category);
+  // Fix ratings on those products
+  const affectedProductIds = [
+    ...new Set(otherReviews.map((r) => r.product.toString())),
+  ];
+  for (const productId of affectedProductIds) {
+    const remaining = await Review.find({ product: productId });
+    const avg = remaining.length
+      ? remaining.reduce((sum, r) => sum + r.rating, 0) / remaining.length
+      : 0;
+    await Product.findByIdAndUpdate(productId, { rating: avg });
   }
 
-  // Prefer liked tags/categories
-  const likedProducts = await Product.find({ _id: { $in: user.likedProducts } }).select("tags category");
-  const likedTags       = new Set();
-  const likedCategories = new Set();
-  for (const p of likedProducts) {
-    (p.tags || []).forEach((t) => likedTags.add(t));
-    if (p.category) likedCategories.add(p.category);
-  }
+  await Product.updateMany(
+    {},
+    { $pull: { likes: params.id, dislikes: params.id } },
+  );
+  await User.findByIdAndDelete(params.id);
 
-  const mustAvoid = {
-    _id:      { $nin: [...dislikedIds, ...user.viewedProducts] },
-    status:   "approved",
-    tags:     { $nin: [...dislikedTags] },
-    category: { $nin: [...dislikedCategories] },
-  };
-
-  const [products, total] = await Promise.all([
-    Product.find(mustAvoid)
-      .sort({ score: -1 })
-      .skip((page - 1) * limit)
-      .limit(Number(limit))
-      .populate("creator", "username avatar"),
-    Product.countDocuments(mustAvoid),
-  ]);
-
-  return { products, total };
+  return Response.json({ success: true });
 }

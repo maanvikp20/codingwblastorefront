@@ -1,110 +1,106 @@
-import connectDB from "@/lib/MongoDB";
-import Blog       from "@/models/Blog";
-import { ApiError } from "@/middleware/errorHandling";
+import connectDB from "@/lib/mongodb";
+import Blog from "@/models/Blog";
 
-// Create Post 
-export async function createBlogPost(data, authorId) {
+// gets list of blogs with pagination, search, and categories filters
+export async function getBlogs(req) {
   await connectDB();
-  const post = await Blog.create({ ...data, author: authorId });
-  return post;
-}
-
-// List Published Posts 
-export async function listBlogPosts({ page = 1, limit = 12, category, search } = {}) {
-  await connectDB();
+  const { searchParams } = new URL(req.url);
+  const page     = Number(searchParams.get("page"))  || 1;
+  const limit    = Number(searchParams.get("limit")) || 20;
+  const search   = searchParams.get("search");
+  const category = searchParams.get("category");
 
   const query = { status: "published" };
-  if (category) query.category = category;
   if (search)   query.$text    = { $search: search };
+  if (category) query.category = category;
 
-  const [posts, total] = await Promise.all([
-    Blog.find(query)
-      .populate("author", "username avatar")
-      .sort({ publishedAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(Number(limit))
-      .select("-content"),   // omit heavy content
+  const [blogs, total] = await Promise.all([
+    Blog.find(query).populate("author", "name avatar").sort({ publishedAt: -1 }).skip((page - 1) * limit).limit(limit),
     Blog.countDocuments(query),
   ]);
 
-  return { posts, total, page: Number(page), pages: Math.ceil(total / limit) };
+  const pages = Math.ceil(total / limit);
+
+  return Response.json({
+    success: true,
+    blogs,
+    total,
+    page,
+    pages,
+    hasNextPage: page < pages,
+    hasPrevPage: page > 1,
+  });
 }
 
-// Get Single Post
-export async function getBlogPost(slug) {
+// get single blog by ID and increment views
+export async function getBlog(req, { params }) {
   await connectDB();
+  // We use findByIdAndUpdate to increment views
+  const blog = await Blog.findByIdAndUpdate(
+    params.id, 
+    { $inc: { views: 1 } }, 
+    { new: true }
+  ).populate("author", "name avatar");
 
-  const post = await Blog.findOne({ slug, status: "published" })
-    .populate("author", "username avatar bio")
-    .populate("relatedProducts", "title thumbnail")
-    .populate("comments.author", "username avatar");
-
-  if (!post) throw new ApiError("Post not found", 404);
-
-  await Blog.findByIdAndUpdate(post._id, { $inc: { views: 1 } });
-  return post;
+  if (!blog) throw Object.assign(new Error("Blog not found"), { status: 404 });
+  return Response.json({ success: true, blog });
 }
 
-// Update Post 
-export async function updateBlogPost(postId, authorId, role, data) {
+// create new blog post (admin only)
+export async function createBlog(req, ctx, user) {
+  if (user.role !== "admin") throw Object.assign(new Error("Admin access required"), { status: 403 });
+  
   await connectDB();
+  const body = await req.json();
 
-  const post = await Blog.findById(postId);
-  if (!post) throw new ApiError("Post not found", 404);
+  if (body.status === "published") body.publishedAt = new Date();
 
-  if (post.author.toString() !== authorId && role !== "admin") {
-    throw new ApiError("Not authorised", 403);
+  const blog = await Blog.create({ ...body, author: user.id });
+  return Response.json({ success: true, blog }, { status: 201 });
+}
+
+// update blog (admin only)
+export async function updateBlog(req, { params }, user) {
+  if (user.role !== "admin") throw Object.assign(new Error("Admin access required"), { status: 403 });
+
+  await connectDB();
+  const blog = await Blog.findById(params.id);
+  if (!blog) throw Object.assign(new Error("Blog not found"), { status: 404 });
+
+  const body = await req.json();
+
+  if (body.status === "published" && blog.status !== "published") {
+    body.publishedAt = new Date();
   }
 
-  // Auto-set publishedAt when first publishing
-  if (data.status === "published" && !post.publishedAt) {
-    data.publishedAt = new Date();
-  }
-
-  Object.assign(post, data);
-  await post.save();
-  return post;
+  Object.assign(blog, body);
+  await blog.save();
+  return Response.json({ success: true, blog });
 }
 
-// Delete Post 
-export async function deleteBlogPost(postId, authorId, role) {
+// delete blog (admin only)
+export async function deleteBlog(req, { params }, user) {
+  if (user.role !== "admin") throw Object.assign(new Error("Admin access required"), { status: 403 });
+
   await connectDB();
+  const blog = await Blog.findById(params.id);
+  if (!blog) throw Object.assign(new Error("Blog not found"), { status: 404 });
 
-  const post = await Blog.findById(postId);
-  if (!post) throw new ApiError("Post not found", 404);
-
-  if (post.author.toString() !== authorId && role !== "admin") {
-    throw new ApiError("Not authorised", 403);
-  }
-
-  await post.deleteOne();
-  return { message: "Post deleted" };
+  await blog.deleteOne();
+  return Response.json({ success: true });
 }
 
-// Add Comment
-export async function addBlogComment(postId, userId, content) {
+// like or unlike a blog post
+export async function likeBlog(req, { params }, user) {
   await connectDB();
+  const blog = await Blog.findById(params.id);
+  if (!blog) throw Object.assign(new Error("Blog not found"), { status: 404 });
 
-  const post = await Blog.findById(postId);
-  if (!post) throw new ApiError("Post not found", 404);
+  // If user already liked it, pull from the array, otra vez push
+  const update = blog.likes.includes(user.id) 
+    ? { $pull: { likes: user.id } } 
+    : { $addToSet: { likes: user.id } };
 
-  post.comments.push({ author: userId, content });
-  await post.save();
-
-  const updated = await Blog.findById(postId).populate("comments.author", "username avatar");
-  return updated.comments[updated.comments.length - 1];
-}
-
-// Like Post 
-export async function likeBlogPost(postId, userId) {
-  await connectDB();
-
-  const post = await Blog.findById(postId);
-  if (!post) throw new ApiError("Post not found", 404);
-
-  const liked = post.likes.includes(userId);
-  liked ? post.likes.pull(userId) : post.likes.addToSet(userId);
-  await post.save();
-
-  return { liked: !liked, totalLikes: post.likes.length };
+  const updatedBlog = await Blog.findByIdAndUpdate(params.id, update, { new: true });
+  return Response.json({ success: true, likes: updatedBlog.likes.length });
 }

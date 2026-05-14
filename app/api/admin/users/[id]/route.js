@@ -1,23 +1,21 @@
-import { updateUserRole, toggleUserActive } from "@/controllers/adminController";
-import { withErrorHandling }               from "@/middleware/errorHandling";
-import { requireAdmin }                    from "@/middleware/requireAdmin";
+import {
+  updateUserRole,
+  toggleUserActive,
+  getUserProducts,
+  getUserBlogs,
+} from "@/controllers/adminController";
+import { withErrorHandling } from "@/middleware/errorHandling";
+import { requireAdmin } from "@/middleware/requireAdmin";
 
-// PATCH /api/admin/users/[id]
-// body: { role?: string, toggleActive?: true }
-export const PATCH = withErrorHandling(
-  requireAdmin(async (req, { params }) => {
-    const { role, toggleActive } = await req.json();
-
-    if (toggleActive) {
-      const user = await toggleUserActive(params.id);
-      return Response.json({ success: true, user });
-    }
-
-    if (role) {
-      const user = await updateUserRole(params.id, role);
-      return Response.json({ success: true, user });
-    }
-
-    return Response.json({ success: false, message: "Nothing to update" }, { status: 400 });
-  })
+// Combined GET to handle both products and blogs
+export const GET = withErrorHandling(
+  requireAdmin((req, ctx, user) => {
+    const { searchParams } = new URL(req.url);
+    const type = searchParams.get("type");
+    if (type === "blogs") return getUserBlogs(req, ctx, user);
+    return getUserProducts(req, ctx, user);
+  }),
 );
+
+export const PUT = withErrorHandling(requireAdmin(updateUserRole));
+export const PATCH = withErrorHandling(requireAdmin(toggleUserActive));

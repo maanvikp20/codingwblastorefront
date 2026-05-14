@@ -1,11 +1,11 @@
 import { getAuthUser } from "@/middleware/requireAuth";
-import { ApiError } from "@/middleware/errorHandling";
 
+// ensure user is an admin
 export function requireAdmin(handler) {
-  return async function (req, ctx) {
+  return async (req, ctx) => {
     const user = getAuthUser(req);
     if (user.role !== "admin") {
-      throw new ApiError("Admin access required", 403);
+      throw Object.assign(new Error("Admin access required"), { status: 403 });
     }
     return handler(req, ctx, user);
   };

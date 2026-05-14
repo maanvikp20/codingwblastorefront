@@ -1,146 +1,52 @@
 import mongoose from "mongoose";
 
-const CommentSchema = new mongoose.Schema(
-  {
-    author:  { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    content: { type: String, required: true, maxlength: 2000 },
-    likes:   [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    replies: [
-      {
-        author:    { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-        content:   { type: String, maxlength: 1000 },
-        createdAt: { type: Date, default: Date.now },
-      },
-    ],
-    isDeleted: { type: Boolean, default: false },
-  },
-  { timestamps: true }
-);
-
-const ReportSchema = new mongoose.Schema(
-  {
-    reporter: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    reason: {
-      type: String,
-      enum: ["spam", "inappropriate", "copyright", "misleading", "other"],
-      required: true,
-    },
-    details:    { type: String, maxlength: 1000 },
-    status:     { type: String, enum: ["pending", "reviewed", "dismissed", "actioned"], default: "pending" },
-    reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    reviewedAt: { type: Date },
-  },
-  { timestamps: true }
-);
-
-const DonationSchema = new mongoose.Schema(
-  {
-    donor:     { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    amount:    { type: Number, required: true, min: 0.5 },
-    message:   { type: String, maxlength: 500 },
-    anonymous: { type: Boolean, default: false },
-    stripePaymentIntentId: { type: String },
-  },
-  { timestamps: true }
-);
-
 const ProductSchema = new mongoose.Schema(
   {
-    title:       { type: String, required: true, trim: true },
-    // ✅ slug added here — single definition, no duplicate
-    slug:        { type: String, required: true, unique: true, lowercase: true, trim: true },
-    description: { type: String, required: true },
-    creator:     { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-
-    // Media
-    images:    [{ type: String }],
-    modelFile: { type: String },
-    thumbnail: { type: String },
-
-    // Categorization
-    category:   { type: String, required: true },
-    tags:       [{ type: String }],
-    material:   { type: String },
-    color:      { type: String },
-    difficulty: { type: String, enum: ["easy", "medium", "hard", "expert"] },
-    printTime:  { type: Number },
-    filament:   { type: Number },
-    scale:      { type: String },
-
-    // Pricing
-    price:  { type: Number, default: 0 },
-    isFree: { type: Boolean, default: true },
-
-    // Availability
-    availability: {
-      status:       { type: String, enum: ["available", "limited", "unavailable", "preorder"], default: "available" },
-      stock:        { type: Number, default: null },
-      preorderDate: { type: Date },
-      note:         { type: String },
+    name:         { type: String, required: true, trim: true },
+    slug:         { type: String, required: true, unique: true, lowercase: true },
+    description:  { type: String, required: true },
+    price:        { type: Number, required: true, default: 0 },
+    isFree:       { type: Boolean, default: false },
+    discount:     { type: Number, default: 0, min: 0, max: 100 },
+    modelFile:    { type: String }, // Link to STL
+    thumbnail:    { type: String },
+    images:       [{ type: String }],
+    author:       { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    source:       { type: String },
+    dimensions: {
+      x:    { type: Number },
+      y:    { type: Number },
+      z:    { type: Number },
+      unit: { type: String, enum: ["mm", "cm", "in"], default: "mm" },
     },
-
-    // Admin Controls
-    status:        { type: String, enum: ["pending", "approved", "rejected", "flagged"], default: "pending" },
-    featured:      { type: Boolean, default: false },
-    isPrintOfDay:  { type: Boolean, default: false },
-    printOfDayDate: { type: Date },
-    adminNotes:    { type: String },
-    approvedBy:    { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    approvedAt:    { type: Date },
-
-    // Sketch
-    isRoughSketch: { type: Boolean, default: false },
-    sketchNotes:   { type: String },
-
-    // Interactions
-    likes:        [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    dislikes:     [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    views:        { type: Number, default: 0 },
-    likeCount:    { type: Number, default: 0 },
-    dislikeCount: { type: Number, default: 0 },
-    score:        { type: Number, default: 0 },
-
-    // Comments & Reports
-    comments:    [CommentSchema],
-    reports:     [ReportSchema],
-    reportCount: { type: Number, default: 0 },
-
-    // Crowdfunding
-    crowdfunding: {
-      enabled:  { type: Boolean, default: false },
-      goal:     { type: Number, default: 0 },
-      raised:   { type: Number, default: 0 },
-      deadline: { type: Date },
-      backers:  { type: Number, default: 0 },
+    category: {
+      type: String,
+      enum: ["figurines", "tools", "home", "jewelry", "art", "mechanical", "educational", "cosplay", "other"],
+      required: true,
     },
-    donations: [DonationSchema],
+    reviews:        [{ type: mongoose.Schema.Types.ObjectId, ref: "Review" }],
+    rating:         { type: Number, default: 0 },
+    totalPurchases: { type: Number, default: 0 },
+    likes:          [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    dislikes:       [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    status:         { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
+    featured:       { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
-// ✅ Indexes — slug is already unique via schema definition above, not repeated here
-ProductSchema.index({ title: "text", description: "text", tags: "text" });
-ProductSchema.index({ score: -1 });
-ProductSchema.index({ featured: 1, status: 1 });
-ProductSchema.index({ isPrintOfDay: 1 });
-ProductSchema.index({ creator: 1 });
-ProductSchema.index({ category: 1, status: 1 });
+// Search indexing
+ProductSchema.index({ name: "text", description: "text" });
 
-// Score recalculation
-ProductSchema.pre("save", function (next) {
-  this.likeCount    = this.likes.length;
-  this.dislikeCount = this.dislikes.length;
-  const n = this.likeCount + this.dislikeCount;
-  if (n === 0) {
-    this.score = 0;
-  } else {
-    const p = this.likeCount / n;
-    const z = 1.96;
-    this.score =
-      (p + (z * z) / (2 * n) - z * Math.sqrt((p * (1 - p) + (z * z) / (4 * n)) / n)) /
-      (1 + (z * z) / n);
+// Auto-generate slug from name
+ProductSchema.pre("validate", function (next) {
+  if (this.isModified("name") && !this.slug) {
+    this.slug = this.name
+      .toLowerCase()
+      .replace(/[^a-z0-9 -]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-");
   }
-  this.reportCount = this.reports.length;
   next();
 });
 

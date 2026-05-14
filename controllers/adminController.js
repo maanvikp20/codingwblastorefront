@@ -1,202 +1,144 @@
-import connectDB from "@/lib/MongoDB";
+import connectDB from "@/lib/mongodb";
 import Product from "@/models/Product";
 import User from "@/models/User";
 import Blog from "@/models/Blog";
-import { ApiError } from "@/middleware/errorHandling";
 
-// Dashboard Stats
-export async function getDashboardStats() {
+// get admin dashboard stats
+export async function getDashboardStats(req, ctx, user) {
   await connectDB();
-
-  const [
-    totalProducts,
-    pendingProducts,
-    totalUsers,
-    totalBlogs,
-    flaggedProducts,
-    pendingReports,
-  ] = await Promise.all([
+  const [totalProducts, pendingProducts, totalUsers, totalBlogs, pendingBlogs] = await Promise.all([
     Product.countDocuments(),
     Product.countDocuments({ status: "pending" }),
     User.countDocuments(),
     Blog.countDocuments(),
-    Product.countDocuments({ status: "flagged" }),
-    Product.countDocuments({ "reports.status": "pending" }),
+    Blog.countDocuments({ status: "draft" }),
   ]);
-
-  return {
-    totalProducts,
-    pendingProducts,
-    totalUsers,
-    totalBlogs,
-    flaggedProducts,
-    pendingReports,
-  };
+  return Response.json({ success: true, totalProducts, pendingProducts, totalUsers, totalBlogs, pendingBlogs });
 }
 
-// Approve / Reject Product
-export async function reviewProduct(
-  productId,
-  adminId,
-  action,
-  adminNotes = "",
-) {
+// get all pending products for review
+export async function getPendingProducts(req, ctx, user) {
   await connectDB();
-
-  const product = await Product.findById(productId);
-  if (!product) throw new Error("Product not found");
-
-  if (!["approved", "rejected", "flagged"].includes(action)) {
-    throw new ApiError("Invalid action", 400);
-  }
-
-  product.status = action;
-  product.adminNotes = adminNotes;
-  product.approvedBy = adminId;
-  product.approvedAt = new Date();
-  await product.save();
-
-  return product;
-}
-
-// Get Pending Products
-export async function getPendingProducts({ page = 1, limit = 20 } = {}) {
-  await connectDB();
+  const { searchParams } = new URL(req.url);
+  const page  = Number(searchParams.get("page"))  || 1;
+  const limit = Number(searchParams.get("limit")) || 20;
 
   const [products, total] = await Promise.all([
-    Product.find({ status: "pending" })
-      .populate("creator", "username email avatar")
-      .sort({ createdAt: 1 })
-      .skip((page - 1) * limit)
-      .limit(Number(limit)),
+    Product.find({ status: "pending" }).populate("author", "name email").sort({ createdAt: 1 }).skip((page - 1) * limit).limit(limit),
     Product.countDocuments({ status: "pending" }),
   ]);
-
-  return {
-    products,
-    total,
-    page: Number(page),
-    pages: Math.ceil(total / limit),
-  };
+  return Response.json({ success: true, products, total, page, pages: Math.ceil(total / limit) });
 }
 
-// Feature / Un-feature Product
-export async function setFeatured(productId, featured) {
+// approve or reject a product listing
+export async function reviewProduct(req, { params }, user) {
   await connectDB();
-  const product = await Product.findByIdAndUpdate(
-    productId,
-    { featured: Boolean(featured) },
-    { new: true },
-  );
-  if (!product) throw new Error("Product not found");
-  return product;
-}
-
-// Set Print of Day
-export async function setPrintOfDay(productId) {
-  await connectDB();
-
-  // Clear existing print-of-day
-  await Product.updateMany({ isPrintOfDay: true }, { isPrintOfDay: false });
+  const { action, adminNotes } = await req.json();
+  if (!["approved", "rejected"].includes(action))
+    throw Object.assign(new Error("Invalid action"), { status: 400 });
 
   const product = await Product.findByIdAndUpdate(
-    productId,
-    { isPrintOfDay: true, printOfDayDate: new Date() },
-    { new: true },
+    params.id,
+    { status: action, adminNotes, approvedBy: user.id, approvedAt: new Date() },
+    { new: true }
   );
-  if (!product) throw new Error("Product not found");
-  return product;
+  if (!product) throw Object.assign(new Error("Product not found"), { status: 404 });
+  return Response.json({ success: true, product });
 }
 
-// Get Reports ────────────────────────────────────────────────────────────
-export async function getReports({
-  page = 1,
-  limit = 20,
-  status = "pending",
-} = {}) {
+// toggle product featured status
+export async function setFeatured(req, { params }, user) {
   await connectDB();
-
-  // Aggregate products that have reports matching the given status
-  const products = await Product.find({ "reports.status": status })
-    .select("title reports creator status")
-    .populate("creator", "username email")
-    .populate("reports.reporter", "username email")
-    .sort({ reportCount: -1 })
-    .skip((page - 1) * limit)
-    .limit(Number(limit));
-
-  const total = await Product.countDocuments({ "reports.status": status });
-  return {
-    products,
-    total,
-    page: Number(page),
-    pages: Math.ceil(total / limit),
-  };
+  const { featured } = await req.json();
+  const product = await Product.findByIdAndUpdate(params.id, { featured }, { new: true });
+  if (!product) throw Object.assign(new Error("Product not found"), { status: 404 });
+  return Response.json({ success: true, product });
 }
 
-// Resolve Report
-export async function resolveReport(productId, reportId, adminId, resolution) {
+// list all users with filters
+export async function listUsers(req, ctx, user) {
   await connectDB();
-
-  const product = await Product.findById(productId);
-  if (!product) throw new Error("Product not found");
-
-  const report = product.reports.id(reportId);
-  if (!report) throw new ApiError("Report not found", 404);
-
-  report.status = resolution; // "reviewed" | "dismissed" | "actioned"
-  report.reviewedBy = adminId;
-  report.reviewedAt = new Date();
-
-  if (resolution === "actioned") {
-    product.status = "flagged";
-  }
-
-  await product.save();
-  return product;
-}
-
-// Manage Users
-export async function listUsers({ page = 1, limit = 20, role, search } = {}) {
-  await connectDB();
+  const { searchParams } = new URL(req.url);
+  const page   = Number(searchParams.get("page"))  || 1;
+  const limit  = Number(searchParams.get("limit")) || 20;
+  const role   = searchParams.get("role");
+  const search = searchParams.get("search");
 
   const query = {};
   if (role) query.role = role;
-  if (search) {
-    query.$or = [
-      { username: { $regex: search, $options: "i" } },
-      { email: { $regex: search, $options: "i" } },
-    ];
-  }
+  if (search) query.$or = [
+    { name:  { $regex: search, $options: "i" } },
+    { email: { $regex: search, $options: "i" } },
+  ];
 
   const [users, total] = await Promise.all([
-    User.find(query)
-      .select("-password")
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(Number(limit)),
+    User.find(query).select("-password").sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
     User.countDocuments(query),
   ]);
-
-  return { users, total, page: Number(page), pages: Math.ceil(total / limit) };
+  return Response.json({ success: true, users, total, page, pages: Math.ceil(total / limit) });
 }
 
-export async function updateUserRole(userId, role) {
+// change a user's role
+export async function updateUserRole(req, { params }) {
   await connectDB();
-  const user = await User.findByIdAndUpdate(
-    userId,
-    { role },
-    { new: true },
-  ).select("-password");
-  if (!user) throw new ApiError("User not found", 404);
-  return user;
+  const { role } = await req.json();
+  if (!["customer", "curator", "admin"].includes(role))
+    throw Object.assign(new Error("Invalid role"), { status: 400 });
+
+  const user = await User.findByIdAndUpdate(params.id, { role }, { new: true }).select("-password");
+  if (!user) throw Object.assign(new Error("User not found"), { status: 404 });
+  return Response.json({ success: true, user });
 }
 
-export async function toggleUserActive(userId) {
+// enable or disable a user account
+export async function toggleUserActive(req, { params }) {
   await connectDB();
-  const user = await User.findById(userId);
-  if (!user) throw new ApiError("User not found", 404);
+  const user = await User.findById(params.id);
+  if (!user) throw Object.assign(new Error("User not found"), { status: 404 });
   user.isActive = !user.isActive;
   await user.save();
-  return user;
+  return Response.json({ success: true, isActive: user.isActive });
+}
+
+// get all products uploaded by a specific user
+export async function getUserProducts(req, { params }) {
+  await connectDB();
+  const { searchParams } = new URL(req.url);
+  const page  = Number(searchParams.get("page"))  || 1;
+  const limit = Number(searchParams.get("limit")) || 20;
+
+  const [products, total] = await Promise.all([
+    Product.find({ author: params.id }).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
+    Product.countDocuments({ author: params.id }),
+  ]);
+  return Response.json({ success: true, products, total, page, pages: Math.ceil(total / limit) });
+}
+
+// get all blogs written by a specific user
+export async function getUserBlogs(req, { params }) {
+  await connectDB();
+  const { searchParams } = new URL(req.url);
+  const page  = Number(searchParams.get("page"))  || 1;
+  const limit = Number(searchParams.get("limit")) || 20;
+
+  const [blogs, total] = await Promise.all([
+    Blog.find({ author: params.id }).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
+    Blog.countDocuments({ author: params.id }),
+  ]);
+  return Response.json({ success: true, blogs, total, page, pages: Math.ceil(total / limit) });
+}
+
+// admin review to publish or archive a blog
+export async function reviewBlog(req, { params }, user) {
+  await connectDB();
+  const { action } = await req.json();
+  if (!["published", "archived"].includes(action))
+    throw Object.assign(new Error("Invalid action"), { status: 400 });
+
+  const update = { status: action };
+  if (action === "published") update.publishedAt = new Date();
+
+  const blog = await Blog.findByIdAndUpdate(params.id, update, { new: true });
+  if (!blog) throw Object.assign(new Error("Blog not found"), { status: 404 });
+  return Response.json({ success: true, blog });
 }
