@@ -257,10 +257,10 @@ const Page = () => {
       </select>
     </div>
 
-    <div className='w-screen relative min-h-[84vh]  flex-row flex p-6 flex-wrap justify-around bg-[#CED4DB gap-8'>
+    <div className='w-screen relative min-h-[84vh]  flex-row flex p-6 flex-wrap justify-around bg-[#CED4DB] gap-8'>
       {
         // Generates the products based off of the object array products
-        products.map((x, index) => <Product key={index} like={x.likes} dislike={x.dislikes} price={x.price} featured={x.featured} user={x.user} name={x.name} url={x.url} />)
+        products.map((x, index) => <Product key={index} like={x.likes} dislike={x.dislikes} price={x.price} featured={x.featured} author={x.user} name={x.name} url={x.url} />)
       } 
      </div>
 
@@ -270,4 +270,3 @@ const Page = () => {
 }
 
 export default Page
-
