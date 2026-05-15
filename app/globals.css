@@ -6,74 +6,12 @@ body {
   overflow-x: hidden;
   /* background-color: #CED4DB; */
 }
-/* 
-.search-area{
-  width: 100%;
-  height: 12vh;
-  background-color: #ffe2c7;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-around;
+
+.anim {
+  animation: fadeIn .3s;
 }
 
-.search-button{
-  width: 8%;
-  height: 33%;
-  background-color: #1b1a1cd1;
-  border-radius: 1rem;
-  font-weight: 600;
-  color: white;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-
-.search-bar{
-  border: solid black .15rem;
-  width: 45%;
-  height: 45%;
-  border-radius: 1rem;
-}
-
-.products {
-  min-height: 80vh;
-  width: 100%;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: space-around;
-  padding: 1rem;
-}
-
-.products > div{
-  width: 22%;
-  height: 29vh;
-  border: solid .15rem black;
-  border-radius: 1rem;
-}
-
-.product{
-  flex-direction: column;
-}
-
-.product > div{
-  display: flex;
-  flex-direction: row;
-  justify-content: space-evenly;
-  background-color: #ffe2c7;
-}
-
-.product-header{
-  height: 13%;
-  width: 100%;
-  padding: .4rem;
-}
-
-.product-img{
-  height: 70%;
-  width: 100%;
-}
-
-.product-footer{
-  height: 17%;
-  width: 100%;
-  padding: .5rem;
-} */

@@ -1,6 +1,6 @@
 import React from 'react'
 import Card from '../../components/Card'
-import Product from '@/components/Product'
+import Product from 'Product'
 
 const Page = () => {
   return (
