@@ -5,7 +5,10 @@ import Product from "@/models/Product";
 // get all reviews for a product
 export async function getReviews(req, { params }) {
   await connectDB();
-  const reviews = await Review.find({ product: params.id }).populate("author", "name avatar");
+  const reviews = await Review.find({ product: params.id }).populate(
+    "author",
+    "name avatar",
+  );
   return Response.json({ success: true, reviews });
 }
 
@@ -14,10 +17,25 @@ export async function addReview(req, { params }, user) {
   await connectDB();
   const { rating, title, body } = await req.json();
 
-  const existing = await Review.findOne({ product: params.id, author: user.id });
-  if (existing) throw Object.assign(new Error("Already reviewed"), { status: 400 });
+  if (!rating || rating < 1 || rating > 5)
+    throw Object.assign(new Error("Rating must be between 1 and 5"), {
+      status: 400,
+    });
 
-  await Review.create({ product: params.id, author: user.id, rating, title, body });
+  const existing = await Review.findOne({
+    product: params.id,
+    author: user.id,
+  });
+  if (existing)
+    throw Object.assign(new Error("Already reviewed"), { status: 400 });
+
+  await Review.create({
+    product: params.id,
+    author: user.id,
+    rating,
+    title,
+    body,
+  });
 
   // Recalculate average
   const reviews = await Review.find({ product: params.id });

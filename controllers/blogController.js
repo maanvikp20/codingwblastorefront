@@ -5,17 +5,21 @@ import Blog from "@/models/Blog";
 export async function getBlogs(req) {
   await connectDB();
   const { searchParams } = new URL(req.url);
-  const page     = Number(searchParams.get("page"))  || 1;
-  const limit    = Number(searchParams.get("limit")) || 20;
-  const search   = searchParams.get("search");
+  const page = Number(searchParams.get("page")) || 1;
+  const limit = Number(searchParams.get("limit")) || 20;
+  const search = searchParams.get("search");
   const category = searchParams.get("category");
 
   const query = { status: "published" };
-  if (search)   query.$text    = { $search: search };
+  if (search) query.$text = { $search: search };
   if (category) query.category = category;
 
   const [blogs, total] = await Promise.all([
-    Blog.find(query).populate("author", "name avatar").sort({ publishedAt: -1 }).skip((page - 1) * limit).limit(limit),
+    Blog.find(query)
+      .populate("author", "name avatar")
+      .sort({ publishedAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit),
     Blog.countDocuments(query),
   ]);
 
@@ -35,11 +39,10 @@ export async function getBlogs(req) {
 // get single blog by ID and increment views
 export async function getBlog(req, { params }) {
   await connectDB();
-  // We use findByIdAndUpdate to increment views
-  const blog = await Blog.findByIdAndUpdate(
-    params.id, 
-    { $inc: { views: 1 } }, 
-    { new: true }
+  const blog = await Blog.findOneAndUpdate(
+    { _id: params.id, status: "published" },
+    { $inc: { views: 1 } },
+    { new: true },
   ).populate("author", "name avatar");
 
   if (!blog) throw Object.assign(new Error("Blog not found"), { status: 404 });
@@ -48,8 +51,9 @@ export async function getBlog(req, { params }) {
 
 // create new blog post (admin only)
 export async function createBlog(req, ctx, user) {
-  if (user.role !== "admin") throw Object.assign(new Error("Admin access required"), { status: 403 });
-  
+  if (user.role !== "admin")
+    throw Object.assign(new Error("Admin access required"), { status: 403 });
+
   await connectDB();
   const body = await req.json();
 
@@ -61,7 +65,8 @@ export async function createBlog(req, ctx, user) {
 
 // update blog (admin only)
 export async function updateBlog(req, { params }, user) {
-  if (user.role !== "admin") throw Object.assign(new Error("Admin access required"), { status: 403 });
+  if (user.role !== "admin")
+    throw Object.assign(new Error("Admin access required"), { status: 403 });
 
   await connectDB();
   const blog = await Blog.findById(params.id);
@@ -80,7 +85,8 @@ export async function updateBlog(req, { params }, user) {
 
 // delete blog (admin only)
 export async function deleteBlog(req, { params }, user) {
-  if (user.role !== "admin") throw Object.assign(new Error("Admin access required"), { status: 403 });
+  if (user.role !== "admin")
+    throw Object.assign(new Error("Admin access required"), { status: 403 });
 
   await connectDB();
   const blog = await Blog.findById(params.id);
@@ -97,10 +103,12 @@ export async function likeBlog(req, { params }, user) {
   if (!blog) throw Object.assign(new Error("Blog not found"), { status: 404 });
 
   // If user already liked it, pull from the array, otra vez push
-  const update = blog.likes.includes(user.id) 
-    ? { $pull: { likes: user.id } } 
+  const update = blog.likes.includes(user.id)
+    ? { $pull: { likes: user.id } }
     : { $addToSet: { likes: user.id } };
 
-  const updatedBlog = await Blog.findByIdAndUpdate(params.id, update, { new: true });
+  const updatedBlog = await Blog.findByIdAndUpdate(params.id, update, {
+    new: true,
+  });
   return Response.json({ success: true, likes: updatedBlog.likes.length });
 }

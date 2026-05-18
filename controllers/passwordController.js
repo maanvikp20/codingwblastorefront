@@ -27,7 +27,7 @@ export async function forgotPassword(req) {
   user.passwordResetExpires = new Date(Date.now() + 3600000);
   await user.save();
 
-  // In a real app you'd email this token. For now, return it directly.
+  // TODO: replace with email delivery before going to production — never expose resetToken in the response body
   return Response.json({ success: true, resetToken: token });
 }
 
