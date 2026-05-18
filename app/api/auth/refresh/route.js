@@ -1,4 +1,4 @@
 import { refresh } from "@/controllers/authController";
-import { withErrorHandling } from "@/middleware/errorHandling";
+import { withErrorHandling } from "@/middleware/withErrorHandling";
 
 export const POST = withErrorHandling(refresh);

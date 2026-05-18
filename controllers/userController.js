@@ -19,11 +19,16 @@ export async function updateUser(req, { params }, user) {
     throw Object.assign(new Error("Forbidden"), { status: 403 });
 
   const { name, avatar, bio, phoneNumber } = await req.json();
-  const updated = await User.findByIdAndUpdate(
-    params.id,
-    { name, avatar, bio, phoneNumber },
-    { new: true },
-  ).select("-password");
+
+  const update = {};
+  if (name !== undefined) update.name = name;
+  if (avatar !== undefined) update.avatar = avatar;
+  if (bio !== undefined) update.bio = bio;
+  if (phoneNumber !== undefined) update.phoneNumber = phoneNumber;
+
+  const updated = await User.findByIdAndUpdate(params.id, update, {
+    new: true,
+  }).select("-password");
   return Response.json({ success: true, user: updated });
 }
 

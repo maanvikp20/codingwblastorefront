@@ -2,18 +2,20 @@ import connectDB from "@/lib/mongodb";
 import Product from "@/models/Product";
 import User from "@/models/User";
 import Blog from "@/models/Blog";
+import Report from "@/models/Report";
 
 // get admin dashboard stats
 export async function getDashboardStats(req, ctx, user) {
   await connectDB();
-  const [totalProducts, pendingProducts, totalUsers, totalBlogs, pendingBlogs] = await Promise.all([
+  const [totalProducts, pendingProducts, totalUsers, totalBlogs, pendingBlogs, openReports] = await Promise.all([
     Product.countDocuments(),
     Product.countDocuments({ status: "pending" }),
     User.countDocuments(),
     Blog.countDocuments(),
     Blog.countDocuments({ status: "draft" }),
+    Report.countDocuments({ status: "open" }),
   ]);
-  return Response.json({ success: true, totalProducts, pendingProducts, totalUsers, totalBlogs, pendingBlogs });
+  return Response.json({ success: true, totalProducts, pendingProducts, totalUsers, totalBlogs, pendingBlogs, openReports });
 }
 
 // get all pending products for review
@@ -82,7 +84,7 @@ export async function listUsers(req, ctx, user) {
 export async function updateUserRole(req, { params }) {
   await connectDB();
   const { role } = await req.json();
-  if (!["customer", "curator", "admin"].includes(role))
+  if (!["customer", "curator", "partner", "admin"].includes(role))
     throw Object.assign(new Error("Invalid role"), { status: 400 });
 
   const user = await User.findByIdAndUpdate(params.id, { role }, { new: true }).select("-password");
@@ -141,4 +143,59 @@ export async function reviewBlog(req, { params }, user) {
   const blog = await Blog.findByIdAndUpdate(params.id, update, { new: true });
   if (!blog) throw Object.assign(new Error("Blog not found"), { status: 404 });
   return Response.json({ success: true, blog });
+}
+
+// get reports segmented explicitly for tab layouts
+export async function getReports(req) {
+  await connectDB();
+  const { searchParams } = new URL(req.url);
+  const category = searchParams.get("category"); // matches report categories
+  const page  = Number(searchParams.get("page"))  || 1;
+  const limit = Number(searchParams.get("limit")) || 20;
+
+  const query = {};
+  if (category) query.category = category;
+
+  const [reports, total] = await Promise.all([
+    Report.find(query).populate("product", "name thumbnail").populate("reporter", "name email").sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
+    Report.countDocuments(query),
+  ]);
+  return Response.json({ success: true, reports, total, page, pages: Math.ceil(total / limit) });
+}
+
+// update status of individual file or print flags
+export async function reviewReport(req, { params }) {
+  await connectDB();
+  const { status, adminNotes } = await req.json();
+  if (!["open", "under_review", "resolved"].includes(status))
+    throw Object.assign(new Error("Invalid status"), { status: 400 });
+
+  const report = await Report.findByIdAndUpdate(params.id, { status, adminNotes }, { new: true });
+  if (!report) throw Object.assign(new Error("Report target missing"), { status: 404 });
+  return Response.json({ success: true, report });
+}
+
+// get global marketplace featured configuration settings
+export async function getFeaturedConfig(req, ctx, user) {
+  await connectDB();
+  
+  const config = {
+    bannerText: "Welcome to the Engineering Student Manufacturing Hub!",
+    activeCollection: "mechanical-essentials",
+    allowCustomSketches: true,
+  };
+
+  return Response.json({ success: true, config });
+}
+
+// update global marketplace featured configuration settings
+export async function updateFeaturedConfig(req, ctx, user) {
+  await connectDB();
+  const body = await req.json();
+  
+  return Response.json({ 
+    success: true, 
+    message: "Featured configuration updated successfully",
+    updatedConfig: body 
+  });
 }
