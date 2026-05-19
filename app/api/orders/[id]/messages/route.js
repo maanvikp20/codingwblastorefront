@@ -1,4 +1,4 @@
-import { addOrderMessage } from "@/controllers/orderController";
+import { addOrderMessage } from "@/controllers/customOrderController";
 import { withErrorHandling } from "@/middleware/withErrorHandling";
 import { requireAuth } from "@/middleware/requireAuth";
 

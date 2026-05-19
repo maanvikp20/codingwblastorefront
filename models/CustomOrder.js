@@ -5,7 +5,7 @@ const CustomOrderSchema = new mongoose.Schema(
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     orderType: {
       type: String,
-      enum: ["custom_sketch", "bulk_order"],
+      enum: ["custom_sketch", "custom_part", "bulk_order"],
       required: true,
     },
     description: { type: String, required: true },
@@ -22,7 +22,7 @@ const CustomOrderSchema = new mongoose.Schema(
       ],
       default: "submitted",
     },
-
+    discountMultiplier: { type: Number, default: 1.0 },
     messages: [
       {
         sender: {

@@ -40,24 +40,38 @@ UserSchema.pre("save", async function () {
 });
 
 const ProductSchema = new mongoose.Schema({
-  name:             { type: String, required: true },
-  description:      String,
-  category:         String,
-  author:           { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  status:           { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
-  featured:         { type: Boolean, default: false },
+  name:             { type: String, required: true, trim: true },
+  slug:             { type: String, required: true, unique: true, lowercase: true },
+  description:      { type: String, required: true },
+  price:            { type: Number, required: true, default: 0 },
   isFree:           { type: Boolean, default: false },
+  discount:         { type: Number, default: 0 },
+  modelFile:        String,
+  thumbnail:        String,
+  images:           [String],
+  author:           { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  attributionType:  { type: String, enum: ["individual", "student_group", "imported"], default: "individual" },
+  groupName:        { type: String, trim: true },
+  source:           String,
+  dimensions: {
+    x: Number, y: Number, z: Number,
+    unit: { type: String, enum: ["mm", "cm", "in"], default: "mm" },
+  },
+  category: {
+    type: String,
+    enum: ["figurines", "tools", "home", "jewelry", "art", "mechanical", "educational", "cosplay", "other"],
+    required: true,
+  },
+  stockCount:         { type: Number, default: 0 },
+  isPrintableNow:     { type: Boolean, default: true },
+  availableFilaments: [String],
+  reviews:          [{ type: mongoose.Schema.Types.ObjectId, ref: "Review" }],
   rating:           { type: Number, default: 0 },
   totalPurchases:   { type: Number, default: 0 },
-  views:            { type: Number, default: 0 },
-  shares:           { type: Number, default: 0 },
-  previewClicks:    { type: Number, default: 0 },
   likes:            [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   dislikes:         [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-  thumbnail:        String,
-  fileUrl:          String,
-  tags:             [String],
-  groupName:        String,
+  status:           { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
+  featured:         { type: Boolean, default: false },
   isPrintOfTheDay:  { type: Boolean, default: false },
   isPrintOfTheWeek: { type: Boolean, default: false },
   isPrintOfTheMonth:{ type: Boolean, default: false },
@@ -74,17 +88,20 @@ const ReviewSchema = new mongoose.Schema({
   body:    String,
 }, { timestamps: true });
 
+// Match your real Blog model — uses `content` (not `body`) and requires `slug`
 const BlogSchema = new mongoose.Schema({
-  title:       { type: String, required: true },
-  body:        { type: String, required: true },
+  title:       { type: String, required: true, trim: true },
+  slug:        { type: String, required: true, unique: true },
   author:      { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  status:      { type: String, enum: ["draft", "published", "archived"], default: "draft" },
-  category:    String,
+  content:     { type: String, required: true },
+  excerpt:     { type: String, maxlength: 500 },
+  coverImage:  String,
+  category:    { type: String, default: "other" },
   tags:        [String],
-  thumbnail:   String,
+  status:      { type: String, enum: ["draft", "published", "archived"], default: "draft" },
+  publishedAt: Date,
   views:       { type: Number, default: 0 },
   likes:       [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-  publishedAt: Date,
 }, { timestamps: true });
 
 const ReportSchema = new mongoose.Schema({
@@ -106,15 +123,15 @@ const DonationSchema = new mongoose.Schema({
 
 const CustomOrderSchema = new mongoose.Schema({
   user:               { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  orderType:          { type: String, required: true },
+  orderType:          { type: String, enum: ["custom_sketch", "custom_part", "bulk_order"], required: true },
   description:        { type: String, required: true },
   sketchUrl:          { type: String, default: "" },
-  status:             { type: String, enum: ["submitted", "in_discussion", "approved", "rejected", "completed"], default: "submitted" },
+  status:             { type: String, enum: ["submitted", "in_discussion", "approved", "printing", "completed", "cancelled"], default: "submitted" },
   discountMultiplier: { type: Number, default: 1.0 },
   messages: [{
-    sender:    { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    message:   String,
-    createdAt: { type: Date, default: Date.now },
+    sender:    { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    message:   { type: String, required: true },
+    sentAt:    { type: Date, default: Date.now },
   }],
 }, { timestamps: true });
 
@@ -129,15 +146,18 @@ const CustomOrder = mongoose.models.CustomOrder || mongoose.model("CustomOrder",
 
 // ─── Wipe ─────────────────────────────────────────────────────────────────────
 console.log("🗑   Clearing collections...");
-await Promise.all([
-  User.deleteMany({}),
-  Product.deleteMany({}),
-  Review.deleteMany({}),
-  Blog.deleteMany({}),
-  Report.deleteMany({}),
-  Donation.deleteMany({}),
-  CustomOrder.deleteMany({}),
-]);
+
+// Drop every collection entirely (nukes documents AND indexes) so stale unique
+// indexes like slug_1 can't cause duplicate key errors on re-seed.
+const db = mongoose.connection.db;
+const existingCollections = (await db.listCollections().toArray()).map(c => c.name);
+
+await Promise.all(
+  ["users", "products", "reviews", "blogs", "reports", "donations", "customorders"]
+    .filter(name => existingCollections.includes(name))
+    .map(name => db.collection(name).drop())
+);
+console.log("   ✓ Collections dropped");
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 console.log("👤  Seeding users...");
@@ -200,86 +220,103 @@ const products = await Product.create([
   // approved + featured
   {
     name: "Parametric Gear Set",
+    slug: "parametric-gear-set",
     description: "Fully parametric spur gear system for mechanical projects",
     category: "mechanical",
+    price: 0,
+    isFree: true,
     author: alice._id,
     status: "approved",
     featured: true,
-    isFree: true,
     rating: 4.5,
     isPrintOfTheWeek: true,
     thumbnail: "https://via.placeholder.com/400x300?text=Gear+Set",
-    fileUrl: "https://files.example.com/gear-set.stl",
-    tags: ["gears", "mechanical", "parametric"],
+    modelFile: "https://files.example.com/gear-set.stl",
+    availableFilaments: ["PLA", "PETG"],
+    dimensions: { x: 80, y: 80, z: 20, unit: "mm" },
     groupName: "mechanical-essentials",
+    attributionType: "student_group",
   },
   // approved, paid
   {
     name: "Robotic Arm Bracket",
+    slug: "robotic-arm-bracket",
     description: "Lightweight bracket for small servo-driven robotic arms",
-    category: "robotics",
+    category: "mechanical",
+    price: 4.99,
+    isFree: false,
     author: alice._id,
     status: "approved",
     featured: false,
-    isFree: false,
     rating: 4.0,
     isPrintOfTheMonth: true,
     thumbnail: "https://via.placeholder.com/400x300?text=Robot+Bracket",
-    fileUrl: "https://files.example.com/robot-bracket.stl",
-    tags: ["robotics", "servo", "bracket"],
+    modelFile: "https://files.example.com/robot-bracket.stl",
+    availableFilaments: ["PLA", "ABS"],
+    dimensions: { x: 60, y: 40, z: 30, unit: "mm" },
   },
-  // approved, by partner
+  // approved, by partner — free home item
   {
     name: "Cable Management Clip",
+    slug: "cable-management-clip",
     description: "Snap-fit cable clips for clean desk setups",
-    category: "utility",
+    category: "home",
+    price: 0,
+    isFree: true,
     author: partner._id,
     status: "approved",
-    isFree: true,
     rating: 3.8,
     thumbnail: "https://via.placeholder.com/400x300?text=Cable+Clip",
-    fileUrl: "https://files.example.com/cable-clip.stl",
-    tags: ["utility", "cable", "desk"],
+    modelFile: "https://files.example.com/cable-clip.stl",
+    availableFilaments: ["PLA"],
   },
   // pending (needs admin review)
   {
     name: "Drone Frame v2",
+    slug: "drone-frame-v2",
     description: "250mm FPV drone frame optimised for PLA printing",
-    category: "drones",
+    category: "tools",
+    price: 9.99,
+    isFree: false,
     author: bob._id,
     status: "pending",
     thumbnail: "https://via.placeholder.com/400x300?text=Drone+Frame",
-    fileUrl: "https://files.example.com/drone-frame.stl",
-    tags: ["drone", "fpv", "frame"],
+    modelFile: "https://files.example.com/drone-frame.stl",
+    dimensions: { x: 250, y: 250, z: 30, unit: "mm" },
   },
   // pending
   {
     name: "Filament Dry Box Lid",
+    slug: "filament-dry-box-lid",
     description: "Replacement lid for standard filament dry boxes with PTFE port",
-    category: "utility",
+    category: "tools",
+    price: 0,
+    isFree: true,
     author: bob._id,
     status: "pending",
     thumbnail: "https://via.placeholder.com/400x300?text=Dry+Box+Lid",
-    fileUrl: "https://files.example.com/drybox-lid.stl",
-    tags: ["filament", "storage", "utility"],
+    modelFile: "https://files.example.com/drybox-lid.stl",
   },
   // rejected
   {
     name: "Banned Part",
+    slug: "banned-part",
     description: "This listing was rejected by admin",
-    category: "misc",
+    category: "other",
+    price: 0,
+    isFree: true,
     author: alice._id,
     status: "rejected",
     adminNotes: "Does not meet quality standards",
     approvedBy: admin._id,
     approvedAt: new Date(),
     thumbnail: "https://via.placeholder.com/400x300?text=Rejected",
-    fileUrl: "https://files.example.com/banned.stl",
+    modelFile: "https://files.example.com/banned.stl",
   },
 ]);
 console.log(`   ✓ ${products.length} products`);
 
-// Update alice's uploadedItems
+// Update uploadedItems
 await User.findByIdAndUpdate(alice._id, {
   $push: { uploadedItems: { $each: [products[0]._id, products[1]._id, products[5]._id] } },
 });
@@ -319,34 +356,41 @@ console.log("📝  Seeding blogs...");
 await Blog.create([
   {
     title: "Getting Started with FDM Printing for Engineering Parts",
-    body: "FDM printing is a cost-effective way to prototype mechanical components. In this guide we cover layer heights, infill strategies, and material selection for load-bearing parts...",
+    slug: "getting-started-fdm-printing",
+    // FIX: was `body`, must be `content` to match Blog model
+    content: "FDM printing is a cost-effective way to prototype mechanical components. In this guide we cover layer heights, infill strategies, and material selection for load-bearing parts.",
+    excerpt: "A beginner's guide to FDM printing for engineering applications.",
     author: admin._id,
     status: "published",
     category: "guides",
     tags: ["fdm", "engineering", "beginners"],
     publishedAt: new Date("2025-01-15"),
     views: 320,
-    thumbnail: "https://via.placeholder.com/800x400?text=FDM+Guide",
+    coverImage: "https://via.placeholder.com/800x400?text=FDM+Guide",
   },
   {
     title: "Top 5 Free Mechanical Prints of 2025",
-    body: "We compiled the most downloaded free mechanical prints this year. From gear sets to bearing holders, here are the community favourites...",
+    slug: "top-5-free-mechanical-prints-2025",
+    content: "We compiled the most downloaded free mechanical prints this year. From gear sets to bearing holders, here are the community favourites.",
+    excerpt: "The best free mechanical prints the community loved this year.",
     author: admin._id,
     status: "published",
     category: "roundups",
     tags: ["free", "mechanical", "top5"],
     publishedAt: new Date("2025-03-10"),
     views: 512,
-    thumbnail: "https://via.placeholder.com/800x400?text=Top+5",
+    coverImage: "https://via.placeholder.com/800x400?text=Top+5",
   },
   {
     title: "Upcoming: SLA Resin Support",
-    body: "We are working on adding resin-based prints to the marketplace. Stay tuned for the beta...",
+    slug: "upcoming-sla-resin-support",
+    content: "We are working on adding resin-based prints to the marketplace. Stay tuned for the beta launch coming later this year.",
+    excerpt: "SLA resin support is coming soon to the marketplace.",
     author: admin._id,
     status: "draft",
     category: "announcements",
     tags: ["sla", "resin", "upcoming"],
-    thumbnail: "https://via.placeholder.com/800x400?text=SLA+Draft",
+    coverImage: "https://via.placeholder.com/800x400?text=SLA+Draft",
   },
 ]);
 console.log("   ✓ 3 blogs (2 published, 1 draft)");
@@ -457,15 +501,15 @@ console.log("   ✓ 3 custom orders");
 // ─── Summary ──────────────────────────────────────────────────────────────────
 console.log("\n🌱  Seed complete!\n");
 console.log("Test accounts (password shown in plaintext for dev use):");
-console.log("┌────────────────────────────────┬──────────────────────────────┬─────────────┬──────────────┐");
-console.log("│ Name                           │ Email                        │ Password    │ Role         │");
-console.log("├────────────────────────────────┼──────────────────────────────┼─────────────┼──────────────┤");
-console.log("│ Admin User                     │ admin@marketplace.dev        │ Admin1234!  │ admin        │");
-console.log("│ Partner Corp                   │ partner@marketplace.dev      │ Partner1234!│ partner      │");
-console.log("│ Curator Sam                    │ curator@marketplace.dev      │ Curator1234!│ curator      │");
-console.log("│ Alice Student                  │ alice@marketplace.dev        │ Alice1234!  │ customer     │");
-console.log("│ Bob Builder                    │ bob@marketplace.dev          │ Bob1234!    │ customer     │");
-console.log("│ Carol Inactive (disabled)      │ carol@marketplace.dev        │ Carol1234!  │ customer     │");
-console.log("└────────────────────────────────┴──────────────────────────────┴─────────────┴──────────────┘");
+console.log("┌────────────────────────────────┬──────────────────────────────┬──────────────┬──────────────┐");
+console.log("│ Name                           │ Email                        │ Password     │ Role         │");
+console.log("├────────────────────────────────┼──────────────────────────────┼──────────────┼──────────────┤");
+console.log("│ Admin User                     │ admin@marketplace.dev        │ Admin1234!   │ admin        │");
+console.log("│ Partner Corp                   │ partner@marketplace.dev      │ Partner1234! │ partner      │");
+console.log("│ Curator Sam                    │ curator@marketplace.dev      │ Curator1234! │ curator      │");
+console.log("│ Alice Student                  │ alice@marketplace.dev        │ Alice1234!   │ customer     │");
+console.log("│ Bob Builder                    │ bob@marketplace.dev          │ Bob1234!     │ customer     │");
+console.log("│ Carol Inactive (disabled)      │ carol@marketplace.dev        │ Carol1234!   │ customer     │");
+console.log("└────────────────────────────────┴──────────────────────────────┴──────────────┴──────────────┘");
 
 await mongoose.disconnect();
