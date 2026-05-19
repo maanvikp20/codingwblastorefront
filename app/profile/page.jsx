@@ -1,9 +1,8 @@
-'use client'
+'use server'
 
 import React from 'react'
-import connectDB from "../../lib/Mongodb";
+// import connectDB from "../../lib/Mongodb";
 import Product from '@/components/Product';
-import { useState } from 'react';
 import Link from "next/link";
 
 async function getAccountById(id) {
