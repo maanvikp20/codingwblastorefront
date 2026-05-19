@@ -5,14 +5,14 @@ const Page = () => {
     const INPUT = "w-[75%] h-[10%] font-semibold text-2xl bg-[#242325] text-white text-center cursor-pointer "
   return (
     <div className='flex flex-row w-screen h-[92vh] items-center justify-around bg-[#DC965A] overflow-x-hidden max-sm:flex-col max-sm:gap-7'>
-      <form method='post' className={FORM}>
+      <form method='post'  className={FORM}>
         <h1 className='text-5xl font-semibold'>Log In</h1>
         <input name='username' className={INPUT} type="text" placeholder='Username' />
         <input name='password' className={INPUT} type="text" placeholder='Password' />
         <button className={INPUT} type='submit'>Submit</button>
       </form>
 
-      <form method='post' className={FORM}> 
+      <form method='post'  className={FORM}> 
         <h1 className='text-5xl font-semibold '>Register</h1>
         <input name='username' className={INPUT} type="text" placeholder='Username' />
         <input name='password' className={INPUT} type="text" placeholder='Password' />
