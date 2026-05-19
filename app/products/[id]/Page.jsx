@@ -30,7 +30,7 @@ export default async function ProductSlugPage({params}) {
       <div className="bg-[#dc965a] w-100% p-2 m-5">
         <h1 className="text-5xl text-[#242325]">{project.title}</h1>
         <p className="text-lg text-[#242325] mt-4">{project.description}</p>
-        <Link href={project.link} className="text-blue-500 mt-4 inline-block">View Project</Link>
+        <Link href={'/products'} className="text-blue-500 mt-4 inline-block">Back to Store</Link>
       </div>
     </div>
   );

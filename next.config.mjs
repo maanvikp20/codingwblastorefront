@@ -1,22 +1,23 @@
-/** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* config options here */
-  images : {
+  images: {
     remotePatterns: [
-    {
-      protocol: "https",
-      hostname: "res.cloudinary.com",
-      // hostname: "picsum.photos",
+      { protocol: "https", hostname: "res.cloudinary.com" },
+      { protocol: "https", hostname: "www.dummyimage.com" },
+      { protocol: "https", hostname: "picsum.photos" },
+    ],
+  },
+
+  experimental: {
+    serverActions: {
+      allowedOrigins: ["localhost:3000"],
     },
-    {
-      protocol: "https",
-      hostname: "picsum.photos",
+  },
+
+  logging: {
+    fetches: {
+      fullUrl: false,
     },
-    {
-      protocol: "https",
-      hostname: "www.dummyimage.com"
-    }
-  ]}
+  },
 };
 
 export default nextConfig;
