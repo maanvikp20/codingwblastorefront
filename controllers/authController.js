@@ -1,4 +1,4 @@
-import connectDB from "@/lib/mongodb";
+import connectDB from "../lib/Mongodb.js";
 import User from "@/models/User";
 import { signToken, verifyToken } from "@/lib/jwt";
 

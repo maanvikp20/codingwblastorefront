@@ -2,20 +2,24 @@
 import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
 import { AiFillCaretUp } from "react-icons/ai";
-const Navbar = () => {
+import { getAuthHeaders } from '@/app/codingiingnng/api';
+import jwt from "jsonwebtoken";
 
 
 
+const Navbar = ({ user }) => {
+  const isAdmin = user?.role === 'admin'
+  const [admin, setAdmin] = useState(isAdmin)
+  const token = getAuthHeaders('token') // Example usage of getAuthHeaders with a placeholder token
+  console.log(getAuthHeaders('token')) // Debugging line to check the output of getAuthHeaders
+  const decoded = jwt.decode(token)
+  console.log(decoded) // Debugging line to check the decoded token
 
   const [width, setWidth] = useState(window.innerWidth); 
   const [view, setView] = useState(false)
   const breakpoint = 768;
 
-  useEffect(() => {
-    const handleResize = () => setWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+
 
 
 
@@ -34,7 +38,17 @@ const Navbar = () => {
                 
                 <Link href='/products' id='shop' className='m-0'>Shop</Link>
 
+                <Link href='/auth' id='login' className='m-0'>Login/Register</Link>
+
             </div>
+            {admin ?
+              <div className='flex md:flex-row flex-col items-center justify-start h-full m-5 gap-8'>
+                <Link href='/admin/products' id='admin-products' className='m-0'>Admin Products</Link>
+                <Link href='/admin/users' id='admin-users' className='m-0'>Admin Users</Link>
+              </div>
+            :
+              <></>
+            }
             <Link href='/account' id='user-plate' className='border rounded-full px-3 py-4 mr-3'>User</Link>
 
       </section>
@@ -56,6 +70,8 @@ const Navbar = () => {
               <Link href='/custom' id='custom' className='m-0'>Custom</Link>
               <line className='border border-[#bbb891] w-16 mt-1'></line>  
               <Link href='/products' id='shop' className='m-0'>Shop</Link>
+              <line className='border border-[#bbb891] w-16 mt-1'></line>  
+              <Link href='/sign-up' id='login' className='m-0'>Login/Register</Link>
               
               
             </section>
