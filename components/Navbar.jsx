@@ -35,7 +35,7 @@ const Navbar = () => {
                 <Link href='/products' id='shop' className='m-0'>Shop</Link>
 
             </div>
-            <Link href='/account' id='user-plate' className='border rounded-full px-3 py-4 mr-3'>User</Link>
+            <Link href='/account/user' id='user-plate' className='border rounded-full px-3 py-4 mr-3'>User</Link>
 
       </section>
     ) : (
