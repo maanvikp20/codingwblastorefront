@@ -19,7 +19,10 @@ export async function register(req) {
   const user = await User.create({ name, email, password, phoneNumber });
   const token = signToken({ id: user._id, email: user.email, role: user.role });
 
-  return Response.json({ success: true, token, user: user.toSafeObject() });
+  return Response.json(
+    { success: true, token, user: user.toSafeObject() },
+    { status: 201 },
+  );
 }
 
 // login user and issue tokens

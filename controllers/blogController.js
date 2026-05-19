@@ -69,18 +69,22 @@ export async function updateBlog(req, { params }, user) {
     throw Object.assign(new Error("Admin access required"), { status: 403 });
 
   await connectDB();
+  const body = await req.json();
+
   const blog = await Blog.findById(params.id);
   if (!blog) throw Object.assign(new Error("Blog not found"), { status: 404 });
-
-  const body = await req.json();
 
   if (body.status === "published" && blog.status !== "published") {
     body.publishedAt = new Date();
   }
 
-  Object.assign(blog, body);
-  await blog.save();
-  return Response.json({ success: true, blog });
+  const updated = await Blog.findByIdAndUpdate(params.id, { $set: body }, {
+    new: true,
+    runValidators: true,
+    context: "query",
+  });
+
+  return Response.json({ success: true, blog: updated });
 }
 
 // delete blog (admin only)

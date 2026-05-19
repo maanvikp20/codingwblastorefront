@@ -1,4 +1,4 @@
-import { getMyCustomOrders, createCustomOrder } from "@/controllers/orderController";
+import { getMyCustomOrders, createCustomOrder } from "@/controllers/customOrderController";
 import { withErrorHandling } from "@/middleware/withErrorHandling";
 import { requireAuth } from "@/middleware/requireAuth";
 
