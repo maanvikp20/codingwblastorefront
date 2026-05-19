@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import connectDB from "../../../lib/Mongodb";
+import connectDB from "../../lib/Mongodb";
 import Product from '@/components/Product';
 import { useState } from 'react';
 import Link from "next/link";
