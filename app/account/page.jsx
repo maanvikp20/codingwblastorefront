@@ -1,122 +1,113 @@
-"use client";
+import AccountSidebar from "@/components/account/AccountSidebar"
+import ProductCard from "@/components/account/ProductCard"
+import SectionHeader from "@/components/account/SectionHeader"
+import StatsCard from "@/components/account/StatsCard"
 
-import React, { useState } from 'react'
-
-import {BsFillHandThumbsUpFill, BsFillHandThumbsDownFill} from "react-icons/bs";
-
-const suggestedItems = [
+const featuredPrints = [
   {
     id: 1,
     title: "Sports Car",
-    image: "https://media.printables.com/media/prints/22d443ae-b102-45af-803b-7de9cdfd5d16/images/9866247_cbe3ab97-398b-4b59-85a4-ea4c97cd5487_42b934d3-fc55-450a-bc6a-0d6ab3125102/thumbs/inside/1280x960/jpg/ligthroom-472-kopie.webp",
     creator: "Bob174",
-    likes: 130,
-    dislikes: 10,
-  },
-]
-
-const prints = [
-  {
-    id: 1,
-    title: "Sports Car",
-    image: "https://media.printables.com/media/prints/22d443ae-b102-45af-803b-7de9cdfd5d16/images/9866247_cbe3ab97-398b-4b59-85a4-ea4c97cd5487_42b934d3-fc55-450a-bc6a-0d6ab3125102/thumbs/inside/1280x960/jpg/ligthroom-472-kopie.webp",
-    creator: "Bob174",
-    likes: 130,
-    dislikes: 10,
+    price: 190,
+    image:
+      "https://media.printables.com/media/prints/22d443ae-b102-45af-803b-7de9cdfd5d16/images/9866247_cbe3ab97-398b-4b59-85a4-ea4c97cd5487_42b934d3-fc55-450a-bc6a-0d6ab3125102/thumbs/inside/1280x960/jpg/ligthroom-472-kopie.webp",
   },
   {
     id: 2,
-    title: "Boat",
-    image: "https://www.3dbenchy.com/wp-content/uploads/2017/11/3DBenchy-A-small-giant-in-the-world-of-3D-printing-v01-1024x576.jpg",
-    creator: "Bob174",
-    likes: 130,
-    dislikes: 10,
+    title: "3D Benchy",
+    creator: "PrinterLab",
+    price: 75,
+    image:
+      "https://www.3dbenchy.com/wp-content/uploads/2017/11/3DBenchy-A-small-giant-in-the-world-of-3D-printing-v01-1024x576.jpg",
   },
 ]
 
-const ItemCard = ({item}) =>{
-
-  const [likes, setLikes] = useState(item.likes)
-  const [dislikes, setDislikes] = useState(item.dislikes)
-
-
-
-  function increase(){
-    if(likes == item.likes){
-      setLikes(item.likes+1)
-      if(dislikes > item.dislikes){
-        setDislikes(item.dislikes-1)
-      }
-    }
-    
-  }
-  function decrease(){
-    if(dislikes == item.dislikes){
-      setDislikes(dislikes+1)
-      if(likes > item.likes){
-        setLikes(likes-1)
-      }
-    }
-  }
-
-  return(
-    <div className="overflow-hidden rounded-[20px] border-2 border-black bg-[#d99555]">
-      <div className="flex items-center justify-between border-b-2 border-black px-3 py-2 text-sm">
-        <span>{item.title}</span>
-
-        <div className="flex gap-3">
-          <button onClick={increase}>{likes} <BsFillHandThumbsUpFill /></button>
-          <button onClick={decrease}>{dislikes} <BsFillHandThumbsDownFill /></button>
-        </div>
-      </div>
-
-      <img src={item.image} alt={item.title} className="h-44 w-full object-cover"/>
-
-      <div className="border-t-2 border-black py-2 text-center text-sm">
-        By: {item.creator}
-      </div>
-    </div>
-  )
-}
-
 export default function AccountPage(){
-  return(
-    <main className="min-h-screen bg-[#cfcfcf] p-4 text-black">
-      <div className="mx-auto max-w-7xl border-2 border-black bg-[#3b3b3b]">
+  return (
+    <main className="min-h-screen bg-[#0a0a0a] px-4 py-8 text-white">
+      <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[320px_1fr]">
+        <AccountSidebar/>
 
-        <div className="grid gap-4 p-4 lg:grid-cols-[340px_1fr]">
-          <div className="space-y-4">
-            <section className="border-2 border-black bg-[#d99555] p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h2 className="text-4xl">Account:</h2>
+        <div className="space-y-6">
+          <section className="rounded-3xl border border-neutral-800 bg-gradient-to-br from-[#171717] to-[#101010] p-8 shadow-2xl">
+            <p className="text-sm uppercase tracking-[0.3em] text-orange-300">
+              Welcome Back
+            </p>
 
-                  <p className="mt-20 text-3md">Date Created: May 2026</p>
-                </div>
+            <h1 className="mt-4 text-5xl font-black">
+              Your Creator Dashboard
+            </h1>
 
-                <div className="flex h-32 w-32 items-center justify-center rounded-full border-2 border-black bg-transparent text-xl font-bold">
-                  <img src="https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png" alt="placeholder" className="rounded-full"/>
-                </div>
-              </div>
-            </section>
+            <p className="mt-4 max-w-2xl text-lg text-neutral-400">
+              Track purchases, discover trending prints, and manage your storefront activity.
+            </p>
+          </section>
 
-            <section className="border-2 border-black bg-[#d99555] p-4">
-              <h2 className="mb-4 text-3xl">Suggested For You:</h2>
+          <section className="grid gap-4 md:grid-cols-3">
+            <StatsCard
+              title="Saved Prints"
+              value="42"
+              subtitle="+8 this week"
+            />
 
-              <ItemCard item={suggestedItems[0]}/>
-            </section>
-          </div>
+            <StatsCard
+              title="Orders"
+              value="18"
+              subtitle="3 currently processing"
+            />
 
-          <section className="border-2 border-black bg-[#d3d3d3] p-4">
-            <h2 className="mb-4 text-4xl">Prints:</h2>
+            <StatsCard
+              title="Reviews"
+              value="4.9"
+              subtitle="Average storefront rating"
+            />
+          </section>
 
-            <div className="grid gap-6 md:grid-cols-2">
-              {prints.map((item) =>(
-                <ItemCard key={item.id} item={item}/>
+          <section className="rounded-3xl border border-neutral-800 bg-[#111111] p-6">
+            <SectionHeader
+              title="Recommended Prints"
+              description="Based on your recent activity and saved products."
+            />
+
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {featuredPrints.map((item) =>(
+                <ProductCard
+                  key={item.id}
+                  item={item}
+                />
               ))}
             </div>
           </section>
-        </div>       
+
+          <section className="rounded-3xl border border-neutral-800 bg-[#111111] p-6">
+            <SectionHeader
+              title="Recent Activity"
+              description="Latest actions on your storefront account."
+            />
+
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-neutral-800 bg-[#171717] p-4">
+                <p className="font-semibold text-white">
+                  Purchased "Sports Car"
+                </p>
+
+                <p className="mt-1 text-sm text-neutral-400">
+                  2 hours ago
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-neutral-800 bg-[#171717] p-4">
+                <p className="font-semibold text-white">
+                  Saved "3D Benchy" to favorites
+                </p>
+
+                <p className="mt-1 text-sm text-neutral-400">
+                  Yesterday
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
     </main>
   )

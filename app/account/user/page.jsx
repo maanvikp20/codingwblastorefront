@@ -1,78 +1,73 @@
-"use client"
+import AccountSidebar from "@/components/account/AccountSidebar"
+import ProductCard from "@/components/account/ProductCard"
+import SectionHeader from "@/components/account/SectionHeader"
 
 const purchases = [
   {
     id: 1,
     title: "Sports Car",
-    price: "Cost: 190$",
+    creator: "Bob174",
+    price: 190,
     image:
       "https://media.printables.com/media/prints/22d443ae-b102-45af-803b-7de9cdfd5d16/images/9866247_cbe3ab97-398b-4b59-85a4-ea4c97cd5487_42b934d3-fc55-450a-bc6a-0d6ab3125102/thumbs/inside/1280x960/jpg/ligthroom-472-kopie.webp",
   },
   {
     id: 2,
-    title: "Sports Car",
-    price: "Cost: 190$",
-    image:
-      "https://media.printables.com/media/prints/22d443ae-b102-45af-803b-7de9cdfd5d16/images/9866247_cbe3ab97-398b-4b59-85a4-ea4c97cd5487_42b934d3-fc55-450a-bc6a-0d6ab3125102/thumbs/inside/1280x960/jpg/ligthroom-472-kopie.webp",
-  },
-  {
-    id: 3,
-    title: "Boat",
-    price: "Cost: 190$",
+    title: "3D Benchy",
+    creator: "PrinterLab",
+    price: 75,
     image:
       "https://www.3dbenchy.com/wp-content/uploads/2017/11/3DBenchy-A-small-giant-in-the-world-of-3D-printing-v01-1024x576.jpg",
   },
 ]
 
-const PurchaseCard = ({item}) =>{
+const UserAccountPage = () =>{
   return(
-    <div className="overflow-hidden rounded-[20px] border-2 border-black bg-[#d99555]">
-      <div className="flex items-center justify-between border-b-2 border-black px-3 py-2 text-sm">
-        <span>{item.title}</span>
+    <main className="min-h-screen bg-[#0a0a0a] px-4 py-8 text-white">
+      <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[320px_1fr]">
+        <AccountSidebar/>
 
-        <span>{item.price}</span>
-      </div>
+        <div className="space-y-6">
+          <section className="rounded-3xl border border-neutral-800 bg-[#111111] p-6">
+            <SectionHeader title="Purchase History" description="Everything you've purchased from the storefront."/>
 
-      <img src={item.image} alt={item.title} className="h-48 w-full object-cover"/>
-
-      <div className="border-t-2 border-black py-2 text-center text-sm">
-        By: Bob174
-      </div>
-    </div>
-  )
-}
-
-export default function UserAccountPage(){
-  return(
-    <main className="min-h-screen bg-[#cfcfcf] p-4 text-black">
-      <div className="mx-auto max-w-md border-2 border-black bg-[#3b3b3b]">
-
-        <div className="space-y-4 p-4">
-          <section className="border-2 border-black bg-[#d99555] p-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="text-4xl">My User</h2>
-
-                <p className="mt-16 text-2xl">Date Created: May 2026</p>
-              </div>
-
-              <div className="flex h-28 w-28 items-center justify-center rounded-full border-2 border-black bg-cyan-400 text-lg font-bold">
-                  <img src="https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png" alt="placeholder" className="rounded-full"/>
-              </div>
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {purchases.map((item) =>(
+                <ProductCard key={item.id} item={item}/>
+              ))}
             </div>
           </section>
 
-          <section className="border-2 border-black bg-[#d3d3d3] p-4">
-            <h2 className="mb-4 text-3xl">Past Purchases:</h2>
+          <section className="rounded-3xl border border-neutral-800 bg-[#111111] p-6">
+            <SectionHeader title="Order Tracking" description="Monitor current print and shipping status."/>
 
-            <div className="space-y-5">
-              {purchases.map((item) =>(
-                <PurchaseCard key={item.id} item={item}/>
-              ))}
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-neutral-800 bg-[#171717] p-5">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-xl font-bold">
+                      Custom Resin Print
+                    </h3>
+
+                    <p className="mt-1 text-sm text-neutral-400">
+                      Order #WBLA-2042
+                    </p>
+                  </div>
+
+                  <span className="rounded-full bg-orange-500 px-4 py-2 text-sm font-bold text-black">
+                    In Production
+                  </span>
+                </div>
+
+                <div className="mt-5 h-3 overflow-hidden rounded-full bg-black/40">
+                  <div className="h-full w-[65%] rounded-full bg-orange-400"/>
+                </div>
+              </div>
             </div>
           </section>
         </div>
       </div>
     </main>
-  )
-}
+)}
+
+export default UserAccountPage

@@ -31,13 +31,13 @@ export default function AdminPage(){
   useEffect(() =>{
     const fetchUser = async () =>{
       try{
-        const response = await fetch("/api/auth/me", {
+        const response = await fetch("/api/auth/me",{
           method: "GET",
           credentials: "include"
         })
 
         if(!response.ok){
-          router.push("/login")
+          router.push("/auth")
           return
         };
 
