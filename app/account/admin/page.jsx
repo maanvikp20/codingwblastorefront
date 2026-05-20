@@ -1,5 +1,8 @@
 "use client";
 
+import {use, useEffect, useState} from "react";
+import {useRouter} from "next/navigation";
+
 const stats = [
   {
     title: "Total Users",
@@ -20,6 +23,57 @@ const stats = [
 ]
 
 export default function AdminPage(){
+  const router = useRouter();
+
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() =>{
+    const fetchUser = async () =>{
+      try{
+        const response = await fetch("/api/auth/me", {
+          method: "GET",
+          credentials: "include"
+        })
+
+        if(!response.ok){
+          router.push("/login")
+          return
+        };
+
+        const data = await response.json();
+
+        if(!data.user || data.user.role !== "admin"){
+          router.push("/")
+          return
+        }
+
+        setUser(data.user)
+      }catch(err){
+        console.error(err)
+        router.push("/login")
+      }finally{
+        setLoading(false)
+      }
+    }
+    fetchUser()
+  }, [router])
+
+  if(loading){
+    return(
+      <main className='min-h-screen bg-[#cfcfcf] p-4'>
+        <div className='mx-auto flex min-h-[500px] max-w-6xl items-center justify-center border-2 border-black bg-[#3b3b3b]'>
+          <div className='border-2 border-black bg-[#d99555] px-8 py-4 text-2xl'>
+            Loading Admin Dashboard...
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  if(!user || user.role !== "admin"){
+    return null
+  }
   return(
     <main className="min-h-screen bg-[#cfcfcf] p-4 text-black">
       <div className="mx-auto max-w-6xl border-2 border-black bg-[#3b3b3b]">
