@@ -18,7 +18,6 @@ import {
 } from "react-icons/fi";
 import { jwtDecode } from "jwt-decode";
 
-// Decode token and return user object, or null if invalid/expired
 function decodeToken(token) {
   if (!token) return null;
   try {
@@ -34,24 +33,17 @@ function decodeToken(token) {
   }
 }
 
-// Helper: decode user from token in localStorage
-// Also listens for storage events so navbar updates immediately after login
 function useAuthUser() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Read on mount
     setUser(decodeToken(localStorage.getItem("token")));
 
-    // Re-read whenever localStorage changes (login/logout in same or other tab)
     const handleStorage = () => {
       setUser(decodeToken(localStorage.getItem("token")));
     };
 
     window.addEventListener("storage", handleStorage);
-
-    // Also listen for a custom event fired by the login page in the same tab
-    // (storage event only fires in OTHER tabs, not the current one)
     window.addEventListener("authchange", handleStorage);
 
     return () => {
@@ -63,7 +55,6 @@ function useAuthUser() {
   return { user, setUser };
 }
 
-// Nav link with active underline
 function NavLink({ href, icon: Icon, children, onClick }) {
   const pathname = usePathname();
   const isActive =
@@ -79,7 +70,6 @@ function NavLink({ href, icon: Icon, children, onClick }) {
     >
       {Icon && <Icon size={14} className="shrink-0" />}
       {children}
-      {/* Active underline */}
       <span
         className={`absolute -bottom-1 left-0 h-px bg-[#DC965A] transition-all duration-200 ${
           isActive ? "w-full" : "w-0 group-hover:w-full"
@@ -89,7 +79,6 @@ function NavLink({ href, icon: Icon, children, onClick }) {
   );
 }
 
-// Main Navbar
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
@@ -131,7 +120,6 @@ export default function Navbar() {
     <>
       <header className="sticky top-0 z-50 bg-[#242325] border-b border-white/5">
         <nav className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between gap-6">
-          {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 shrink-0">
             <div className="w-7 h-7 bg-[#DC965A] rounded-lg flex items-center justify-center shrink-0">
               <span className="text-[#242325] font-black text-[10px] leading-none">
@@ -143,35 +131,20 @@ export default function Navbar() {
             </span>
           </Link>
 
-          {/* Desktop centre links */}
           <div className="hidden md:flex items-center gap-6">
-            <NavLink href="/" icon={FiHome}>
-              Home
-            </NavLink>
-            <NavLink href="/products" icon={FiShoppingBag}>
-              Shop
-            </NavLink>
-            <NavLink href="/blog" icon={FiBookOpen}>
-              Blog
-            </NavLink>
-            <NavLink href="/about" icon={FiInfo}>
-              About
-            </NavLink>
+            <NavLink href="/" icon={FiHome}>Home</NavLink>
+            <NavLink href="/products" icon={FiShoppingBag}>Shop</NavLink>
+            <NavLink href="/blog" icon={FiBookOpen}>Blog</NavLink>
+            <NavLink href="/about" icon={FiInfo}>About</NavLink>
             {/* Custom orders only for logged-in non-admins */}
             {isLoggedIn && !isAdmin && (
-              <NavLink href="/custom" icon={FiPenTool}>
-                Custom Orders
-              </NavLink>
+              <NavLink href="/custom" icon={FiPenTool}>Custom Orders</NavLink>
             )}
-            {/* Admin link */}
             {isAdmin && (
-              <NavLink href="/admin" icon={FiShield}>
-                Admin
-              </NavLink>
+              <NavLink href="/admin" icon={FiShield}>Admin</NavLink>
             )}
           </div>
 
-          {/* Desktop right: auth */}
           <div className="hidden md:flex items-center gap-3">
             {!isLoggedIn ? (
               <>
@@ -189,7 +162,6 @@ export default function Navbar() {
                 </Link>
               </>
             ) : (
-              // User avatar dropdown
               <div ref={userMenuRef} className="relative">
                 <button
                   onClick={() => setUserMenuOpen((p) => !p)}
@@ -209,7 +181,6 @@ export default function Navbar() {
                   />
                 </button>
 
-                {/* Dropdown menu */}
                 <div
                   className={`absolute right-0 top-full mt-2 w-48 bg-[#2a2929] border border-white/10 rounded-xl shadow-2xl overflow-hidden transition-all duration-200 origin-top ${
                     userMenuOpen
@@ -218,7 +189,6 @@ export default function Navbar() {
                   }`}
                 >
                   <div className="p-1.5">
-                    {/* Role badge */}
                     {user?.role && (
                       <div className="px-3 py-2 mb-1">
                         <span
@@ -251,13 +221,6 @@ export default function Navbar() {
                         >
                           <FiShield size={13} /> Admin Panel
                         </Link>
-                        <Link
-                          href="/admin/products"
-                          onClick={() => setUserMenuOpen(false)}
-                          className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-white/40 hover:text-white hover:bg-white/5 transition-colors"
-                        >
-                          <FiSettings size={13} /> Manage Products
-                        </Link>
                       </>
                     )}
 
@@ -274,7 +237,6 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile hamburger */}
           <button
             onClick={() => setMobileOpen((p) => !p)}
             className="md:hidden text-white/60 hover:text-white transition-colors p-1 cursor-pointer"
@@ -285,13 +247,11 @@ export default function Navbar() {
         </nav>
       </header>
 
-      {/* Mobile menu */}
       <div
         className={`md:hidden fixed inset-0 z-40 transition-all duration-200 ${
           mobileOpen ? "pointer-events-auto" : "pointer-events-none"
         }`}
       >
-        {/* Backdrop */}
         <div
           className={`absolute inset-0 bg-black/60 transition-opacity duration-200 ${
             mobileOpen ? "opacity-100" : "opacity-0"
@@ -299,7 +259,6 @@ export default function Navbar() {
           onClick={() => setMobileOpen(false)}
         />
 
-        {/* Drawer */}
         <div
           className={`absolute top-14 left-0 right-0 bg-[#242325] border-b border-white/5 transition-all duration-200 ${
             mobileOpen
@@ -308,57 +267,24 @@ export default function Navbar() {
           }`}
         >
           <div className="px-6 py-4 flex flex-col gap-1">
-            <MobileLink
-              href="/"
-              icon={FiHome}
-              close={() => setMobileOpen(false)}
-            >
-              Home
-            </MobileLink>
-            <MobileLink
-              href="/products"
-              icon={FiShoppingBag}
-              close={() => setMobileOpen(false)}
-            >
-              Shop
-            </MobileLink>
-            <MobileLink
-              href="/blog"
-              icon={FiBookOpen}
-              close={() => setMobileOpen(false)}
-            >
-              Blog
-            </MobileLink>
-            <MobileLink
-              href="/about"
-              icon={FiInfo}
-              close={() => setMobileOpen(false)}
-            >
-              About
-            </MobileLink>
+            <MobileLink href="/" icon={FiHome} close={() => setMobileOpen(false)}>Home</MobileLink>
+            <MobileLink href="/products" icon={FiShoppingBag} close={() => setMobileOpen(false)}>Shop</MobileLink>
+            <MobileLink href="/blog" icon={FiBookOpen} close={() => setMobileOpen(false)}>Blog</MobileLink>
+            <MobileLink href="/about" icon={FiInfo} close={() => setMobileOpen(false)}>About</MobileLink>
 
             {isLoggedIn && !isAdmin && (
-              <MobileLink
-                href="/custom"
-                icon={FiPenTool}
-                close={() => setMobileOpen(false)}
-              >
+              <MobileLink href="/custom" icon={FiPenTool} close={() => setMobileOpen(false)}>
                 Custom Orders
               </MobileLink>
             )}
             {isAdmin && (
-              <MobileLink
-                href="/admin"
-                icon={FiShield}
-                close={() => setMobileOpen(false)}
-              >
+              <MobileLink href="/admin" icon={FiShield} close={() => setMobileOpen(false)}>
                 Admin Panel
               </MobileLink>
             )}
 
             <div className="border-t border-white/5 my-2" />
 
-            {/* Auth section */}
             {!isLoggedIn ? (
               <div className="flex gap-3">
                 <Link
@@ -378,7 +304,6 @@ export default function Navbar() {
               </div>
             ) : (
               <>
-                {/* User info row */}
                 <div className="flex items-center gap-3 py-2 px-3 bg-white/5 rounded-xl mb-1">
                   <div className="w-8 h-8 rounded-full bg-[#DC965A]/20 flex items-center justify-center text-[#DC965A] font-bold text-sm shrink-0">
                     {user?.name?.charAt(0)?.toUpperCase() ?? "?"}
@@ -387,26 +312,16 @@ export default function Navbar() {
                     <p className="text-white text-sm font-semibold">
                       {user?.name ?? "Account"}
                     </p>
-                    <p className="text-white/30 text-xs capitalize">
-                      {user?.role}
-                    </p>
+                    <p className="text-white/30 text-xs capitalize">{user?.role}</p>
                   </div>
                 </div>
 
-                <MobileLink
-                  href="/account"
-                  icon={FiUser}
-                  close={() => setMobileOpen(false)}
-                >
+                <MobileLink href="/account" icon={FiUser} close={() => setMobileOpen(false)}>
                   My Account
                 </MobileLink>
 
                 {isAdmin && (
-                  <MobileLink
-                    href="/admin/products"
-                    icon={FiSettings}
-                    close={() => setMobileOpen(false)}
-                  >
+                  <MobileLink href="/admin/products" icon={FiSettings} close={() => setMobileOpen(false)}>
                     Manage Products
                   </MobileLink>
                 )}
@@ -427,7 +342,6 @@ export default function Navbar() {
   );
 }
 
-// Mobile nav link helper
 function MobileLink({ href, icon: Icon, children, close }) {
   const pathname = usePathname();
   const isActive =

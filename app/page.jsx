@@ -40,7 +40,7 @@ export default function Page() {
         setError("Failed to load blog. Is MongoDB running?");
       }
     }
-
+    console.log(featured)
     fetchFeatured();
     fetchBlog();
   }, []);
@@ -70,14 +70,13 @@ export default function Page() {
             </div>
 
             <div>
-              <div className="flex flex-wrap wrap">
-                {products.map((item, i) => (
-                  <Card
-                    key={i}
-                    src={item.image ?? "https://www.dummyimage.com/600x400/000/fff"}
-                    name={item.name ?? "Unknown"}
-                    creator={item.author?.name ?? "Unknown"}
-                  />
+              <div className="flex flex-wrap wrap flex-row w-full">
+                {featured.slice(1).map((item, i) => (
+                  <div key={i} className="bg-[#b3b3b3] p-5 m-5 border-6 border-black lg:max-w-[50%] flex items-center justify-evenly flex-col">
+                    <h1 className="text-6xl"></h1>
+                    <Image src={featured[0]?.image ?? "https://www.dummyimage.com/600x400/000/fff"} alt="" width="100000" height="100" className="p-2.5 w-fit"/>
+                  <h1 className="text-5xl">{item.name} By {item.creator}</h1>
+                  </div>
                 ))}
               </div>
             </div>
