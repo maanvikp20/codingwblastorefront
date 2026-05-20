@@ -2,7 +2,7 @@
 
 import React from 'react'
 // import connectDB from "../../lib/Mongodb";
-import Product from '@/components/Product';
+import Product from '../../components/products/ProductCard';
 import Link from "next/link";
 
 async function getAccountById(id) {
@@ -23,7 +23,7 @@ const Page = async ({params}) => {
   const {id} = params
   const account = await getAccountById(id);
 
-  if (!author) {
+  if (!account) {
     return <div>Account not found</div>;
   }
 // #c8c8c8
@@ -51,7 +51,7 @@ const Page = async ({params}) => {
 
                 return(
 
-                  <Product featured={print.featured} name={print.name} like={print.likes} color='gray' dislike={print.dislikes} price={print.price} slug={print.slug} authSlug={print.author.slug} imgURL={print.thumbnail} author={print.author.name} />
+                <Product product={print} />
 
 
                 )
