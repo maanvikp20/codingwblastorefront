@@ -1,1 +1,3 @@
-fix product[id] stuff
+revert blog and home
+add admin, rest is good
+
