@@ -1,4 +1,4 @@
-import connectDB from "../lib/Mongodb.js";
+import connectDB from "../lib/mongodb.js";
 import User from "@/models/User";
 import { signToken, verifyToken } from "@/lib/jwt";
 
@@ -25,7 +25,7 @@ export async function register(req) {
   );
 }
 
-// login user and issue tokens
+// login user and issue tokense
 export async function login(req) {
   await connectDB();
   const { email, password } = await req.json();

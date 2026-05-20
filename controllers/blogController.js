@@ -39,8 +39,11 @@ export async function getBlogs(req) {
 // get single blog by ID and increment views
 export async function getBlog(req, { params }) {
   await connectDB();
+
+  const { id } = await params;
+
   const blog = await Blog.findOneAndUpdate(
-    { _id: params.id, status: "published" },
+    { _id: id, status: "published" },
     { $inc: { views: 1 } },
     { new: true },
   ).populate("author", "name avatar");
@@ -69,16 +72,19 @@ export async function updateBlog(req, { params }, user) {
     throw Object.assign(new Error("Admin access required"), { status: 403 });
 
   await connectDB();
-  const body = await req.json();
 
-  const blog = await Blog.findById(params.id);
+  const { id } = await params;
+
+  const blog = await Blog.findById(id);
   if (!blog) throw Object.assign(new Error("Blog not found"), { status: 404 });
+
+  const body = await req.json();
 
   if (body.status === "published" && blog.status !== "published") {
     body.publishedAt = new Date();
   }
 
-  const updated = await Blog.findByIdAndUpdate(params.id, { $set: body }, {
+  const updated = await Blog.findByIdAndUpdate(id, { $set: body }, {
     new: true,
     runValidators: true,
     context: "query",
@@ -93,7 +99,10 @@ export async function deleteBlog(req, { params }, user) {
     throw Object.assign(new Error("Admin access required"), { status: 403 });
 
   await connectDB();
-  const blog = await Blog.findById(params.id);
+
+  const { id } = await params;
+
+  const blog = await Blog.findById(id);
   if (!blog) throw Object.assign(new Error("Blog not found"), { status: 404 });
 
   await blog.deleteOne();
@@ -103,7 +112,10 @@ export async function deleteBlog(req, { params }, user) {
 // like or unlike a blog post
 export async function likeBlog(req, { params }, user) {
   await connectDB();
-  const blog = await Blog.findById(params.id);
+
+  const { id } = await params;
+
+  const blog = await Blog.findById(id);
   if (!blog) throw Object.assign(new Error("Blog not found"), { status: 404 });
 
   // If user already liked it, pull from the array, otra vez push
@@ -111,7 +123,7 @@ export async function likeBlog(req, { params }, user) {
     ? { $pull: { likes: user.id } }
     : { $addToSet: { likes: user.id } };
 
-  const updatedBlog = await Blog.findByIdAndUpdate(params.id, update, {
+  const updatedBlog = await Blog.findByIdAndUpdate(id, update, {
     new: true,
   });
   return Response.json({ success: true, likes: updatedBlog.likes.length });

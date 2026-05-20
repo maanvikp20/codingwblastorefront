@@ -11,3 +11,5 @@ const Card = ({name, creator, src}) => {
 }
 
 export default Card
+
+// see to remove this
